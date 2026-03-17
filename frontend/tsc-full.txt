@@ -1,0 +1,7 @@
+src/app/(storefront)/profile/page.tsx(6,23): error TS2307: Cannot find module 'react-hot-toast' or its corresponding type declarations.
+src/app/(storefront)/profile/page.tsx(7,26): error TS2307: Cannot find module '../../components/profile/PersonalInfo' or its corresponding type declarations.
+src/app/(storefront)/profile/page.tsx(8,28): error TS2307: Cannot find module '../../components/profile/AddressManager' or its corresponding type declarations.
+src/app/components/storefront/LiveChatWidget.tsx(57,32): error TS18049: 'newMsg.text' is possibly 'null' or 'undefined'.
+src/components/profile/AddressManager.tsx(4,23): error TS2307: Cannot find module 'react-hot-toast' or its corresponding type declarations.
+src/components/profile/PersonalInfo.tsx(4,23): error TS2307: Cannot find module 'react-hot-toast' or its corresponding type declarations.
+

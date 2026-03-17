@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --brand-pink: #ec268f;
+  --brand-pink-hover: #d41e7e;
+  --bg-white: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-muted: #6b7280;
+  --font-heading: var(--font-tenor), "Tenor Sans", serif;
+  --font-body: var(--font-outfit), "Outfit", sans-serif;
+}
+
+@theme inline {
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-pink-hover: var(--brand-pink-hover);
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+}
+
+
+
+/* Announcement Bar Scroll Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+
+
+/* Hide scrollbar for carousel */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Cart Drawer Slide Animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+/* Product card hover zoom */
+.product-img-zoom {
+  transition: transform 0.4s ease;
+}
+
+.product-img-zoom:hover {
+  transform: scale(1.05);
+}
