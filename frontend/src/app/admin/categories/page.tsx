@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import CustomSelect from "../components/CustomSelect";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<any[]>([]);
@@ -515,3 +515,4 @@ export default function CategoriesPage() {
         </div>
     );
 }
+

@@ -1,5 +1,7 @@
 "use client";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
@@ -81,7 +83,7 @@ export default function SpecialCollectionsPage() {
     const fetchCollections = async () => {
         try {
             const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/special-collection/list", {
+            const res = await fetch(`${API_BASE}/special-collection/list`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -103,7 +105,7 @@ export default function SpecialCollectionsPage() {
     const fetchCategories = async () => {
         try {
             const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/category/list", {
+            const res = await fetch(`${API_BASE}/category/list`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -184,8 +186,8 @@ export default function SpecialCollectionsPage() {
             }
 
             const url = editingCol
-                ? "http://localhost:5000/api/special-collection/update"
-                : "http://localhost:5000/api/special-collection/add";
+                ? `${API_BASE}/special-collection/update`
+                : `${API_BASE}/special-collection/add`;
 
             const res = await fetch(url, {
                 method: "POST",
@@ -215,7 +217,7 @@ export default function SpecialCollectionsPage() {
         setConfirmDeleteId(null);
         try {
             const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/special-collection/delete", {
+            const res = await fetch(`${API_BASE}/special-collection/delete`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ id })
@@ -430,3 +432,4 @@ export default function SpecialCollectionsPage() {
         </div>
     );
 }
+

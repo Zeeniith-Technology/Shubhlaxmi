@@ -1,5 +1,7 @@
 "use client";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 import { useState, useEffect } from "react";
 import { Users, Search, Mail, Phone, Calendar, UserCheck, UserX } from "lucide-react";
 
@@ -27,7 +29,7 @@ export default function UsersPage() {
             const token = localStorage.getItem("admin_token");
             if (!token) return;
 
-            const res = await fetch("http://localhost:5000/api/customer/list", {
+            const res = await fetch(`${API_BASE}/customer/list`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -203,3 +205,4 @@ export default function UsersPage() {
         </div>
     );
 }
+

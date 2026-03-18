@@ -1,5 +1,7 @@
 "use client";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 import { useState } from "react";
 import { MapPin, Plus, Trash2, Edit2, Star, Check } from "lucide-react";
 
@@ -72,7 +74,7 @@ export default function AddressManager({ addresses, refreshProfile }: AddressMan
 
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/customer/address/delete", {
+            const res = await fetch(`${API_BASE}/customer/address/delete`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -97,7 +99,7 @@ export default function AddressManager({ addresses, refreshProfile }: AddressMan
     const handleSetDefault = async (id: string) => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/customer/address/update", {
+            const res = await fetch(`${API_BASE}/customer/address/update`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -124,8 +126,8 @@ export default function AddressManager({ addresses, refreshProfile }: AddressMan
         try {
             const token = localStorage.getItem("token");
             const endpoint = editingId
-                ? "http://localhost:5000/api/customer/address/update"
-                : "http://localhost:5000/api/customer/address/add";
+                ? `${API_BASE}/customer/address/update`
+                : `${API_BASE}/customer/address/add`;
 
             const payload = editingId ? { ...formData, id: editingId } : formData;
 
@@ -332,3 +334,4 @@ export default function AddressManager({ addresses, refreshProfile }: AddressMan
         </div>
     );
 }
+

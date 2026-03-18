@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Video, Calendar, Clock, User, Phone, Mail, FileText, CheckCircle, XCircle } from "lucide-react";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 interface Appointment {
     _id: string;
@@ -173,3 +173,4 @@ export default function AdminAppointments() {
         </div>
     );
 }
+

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Package, Calendar, User, Phone, Mail, MapPin, Search } from "lucide-react";
 import Image from "next/image";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 type OrderItem = {
     productId: string;
@@ -244,3 +244,4 @@ export default function AdminOrders() {
         </div>
     );
 }
+

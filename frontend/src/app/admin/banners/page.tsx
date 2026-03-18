@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import imageCompression from "browser-image-compression";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function BannersPage() {
     const [banners, setBanners] = useState<any[]>([]);
@@ -323,3 +323,4 @@ export default function BannersPage() {
         </div>
     );
 }
+

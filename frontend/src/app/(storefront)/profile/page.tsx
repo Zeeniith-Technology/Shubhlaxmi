@@ -1,5 +1,7 @@
 "use client";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User, MapPin, Package, LogOut } from "lucide-react";
@@ -20,7 +22,7 @@ export default function ProfilePage() {
                 return;
             }
 
-            const res = await fetch("http://localhost:5000/api/customer/profile", {
+            const res = await fetch(`${API_BASE}/customer/profile`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -154,3 +156,4 @@ export default function ProfilePage() {
         </div>
     );
 }
+

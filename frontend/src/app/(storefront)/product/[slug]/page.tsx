@@ -8,7 +8,7 @@ import StorefrontCustomSelect from "../../../components/storefront/StorefrontCus
 import { useCart } from "../../../context/CartContext";
 import { useCurrency } from "../../../context/CurrencyContext";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export default function ProductDetailsPage() {
     const params = useParams();

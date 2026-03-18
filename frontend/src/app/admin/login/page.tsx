@@ -1,5 +1,7 @@
 "use client";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -18,7 +20,7 @@ export default function AdminLoginPage() {
         setError("");
 
         try {
-            const res = await fetch("http://localhost:5000/api/request-otp", {
+            const res = await fetch(`${API_BASE}/request-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, number, name: "Admin User" }),
@@ -43,7 +45,7 @@ export default function AdminLoginPage() {
         setError("");
 
         try {
-            const res = await fetch("http://localhost:5000/api/verify-otp", {
+            const res = await fetch(`${API_BASE}/verify-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp }),
@@ -146,3 +148,4 @@ export default function AdminLoginPage() {
         </div>
     );
 }
+

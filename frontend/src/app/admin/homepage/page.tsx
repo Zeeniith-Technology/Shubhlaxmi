@@ -1,5 +1,7 @@
 "use client";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 import { useState, useEffect } from "react";
 
 export default function HomepageSettingsPage() {
@@ -24,7 +26,7 @@ export default function HomepageSettingsPage() {
     const fetchSettings = async () => {
         try {
             const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/settings/trending/get", {
+            const res = await fetch(`${API_BASE}/settings/trending/get`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -57,8 +59,8 @@ export default function HomepageSettingsPage() {
 
             // Using standard POST endpoints to populate options.
             const [catRes, prodRes] = await Promise.all([
-                fetch("http://localhost:5000/api/category/list", { method: "POST", headers, body: JSON.stringify({}) }),
-                fetch("http://localhost:5000/api/product/list", { method: "POST", headers, body: JSON.stringify({}) })
+                fetch(`${API_BASE}/category/list`, { method: "POST", headers, body: JSON.stringify({}) }),
+                fetch(`${API_BASE}/product/list`, { method: "POST", headers, body: JSON.stringify({}) })
             ]);
 
             const [catData, prodData] = await Promise.all([
@@ -83,7 +85,7 @@ export default function HomepageSettingsPage() {
         setSaving(true);
         try {
             const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/settings/trending/update", {
+            const res = await fetch(`${API_BASE}/settings/trending/update`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -253,3 +255,4 @@ export default function HomepageSettingsPage() {
         </div>
     );
 }
+

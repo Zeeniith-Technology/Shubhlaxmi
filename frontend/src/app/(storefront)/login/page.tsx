@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "../../context/CartContext";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -179,3 +179,4 @@ export default function LoginPage() {
         </div>
     );
 }
+

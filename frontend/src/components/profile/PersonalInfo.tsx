@@ -1,5 +1,7 @@
 "use client";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 import { useState } from "react";
 
 interface PersonalInfoProps {
@@ -17,7 +19,7 @@ export default function PersonalInfo({ profile, refreshProfile }: PersonalInfoPr
         setSaving(true);
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/customer/profile/update", {
+            const res = await fetch(`${API_BASE}/customer/profile/update`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -100,3 +102,4 @@ export default function PersonalInfo({ profile, refreshProfile }: PersonalInfoPr
         </div>
     );
 }
+

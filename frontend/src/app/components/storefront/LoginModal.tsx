@@ -6,7 +6,7 @@ import { X, Star } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function LoginModal() {
     const router = useRouter();
@@ -261,3 +261,4 @@ export default function LoginModal() {
         </div>
     );
 }
+
