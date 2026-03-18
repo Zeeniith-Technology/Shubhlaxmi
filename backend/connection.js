@@ -1,19 +1,19 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
-
-// mongoose.connect(process.env.MONGO_URL).then(() => {
-//     console.log("Connected to MongoDB");
-// }).catch((err) => {
-//     console.log("Error connecting to MongoDB", err);
-// });
 
 export default async function connectdb() {
-    try {
-        await mongoose.connect(process.env.MONGO_URL);
-        console.log("Connected to MongoDB");
-    } catch (err) {
-        console.log("Error connecting to MongoDB", err);
+    const mongoUrl = process.env.MONGO_URL;
+    
+    if (!mongoUrl) {
+        console.error("FATAL: MONGO_URL environment variable is not set! Check Render's Environment Variables.");
+        return;
     }
     
-}
+    console.log(`Connecting to MongoDB... (host: ${mongoUrl.split('@')[1]?.split('/')[0] || 'unknown'})`);
+    
+    try {
+        await mongoose.connect(mongoUrl);
+        console.log("✅ Connected to MongoDB successfully!");
+    } catch (err) {
+        console.error("❌ Error connecting to MongoDB:", err.message);
+    }
+}
