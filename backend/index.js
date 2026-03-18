@@ -43,6 +43,22 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(process.env.port, () => {
-    console.log(`Server is running on port ${process.env.port}`);
+// Health check route for Render
+app.get('/health', (req, res) => {
+    res.status(200).send('Server is awake');
+});
+
+const PORT = process.env.PORT || process.env.port || 5000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+
+    // Self-ping every 14 minutes to prevent Render from sleeping
+    const pingInterval = 14 * 60 * 1000; // 14 minutes
+    const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+    
+    setInterval(() => {
+        fetch(`${url}/health`)
+            .then(res => console.log(`[Keep-Alive] Successfully pinged ${url}/health - Status: ${res.status}`))
+            .catch(err => console.error(`[Keep-Alive] Ping failed:`, err.message));
+    }, pingInterval);
 });
