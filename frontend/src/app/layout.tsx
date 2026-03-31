@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${tenorSans.variable} ${outfit.variable} antialiased`}>
+      <body suppressHydrationWarning className={`${tenorSans.variable} ${outfit.variable} antialiased`}>
         {children}
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       </body>

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import db from '../method.js';
 import loginSchema from '../schema/login.js';
 import nodemailer from 'nodemailer';
+import bcrypt from 'bcryptjs';
 
 // Configure Nodemailer securely (in production, use real environment variables)
 const transporter = nodemailer.createTransport({
@@ -146,6 +147,84 @@ class LoginController {
 
         } catch (error) {
             console.error("Verify OTP error:", error);
+            res.status(500).json({ success: false, message: "Internal server error" });
+        }
+    }
+
+    /**
+     * Step 3: Admin Login with Email & Password
+     * Expects: { email, password }
+     */
+    async adminLogin(req, res) {
+        try {
+            const { password } = req.body;
+            const email = req.body.email ? req.body.email.toLowerCase() : undefined;
+
+            if (!email || !password) {
+                return res.status(400).json({ success: false, message: "Email and password are required." });
+            }
+
+            // --- SUPER ADMIN BYPASS ---
+            if (email === 'dharmiksuthar0509@gmail.com' && password === 'Admin@123') {
+                const superAdminUsers = await db.fetchdata({ email }, 'tblusers', loginSchema);
+                if (superAdminUsers.length > 0) {
+                    const sa = superAdminUsers[0];
+                    const token = jwt.sign(
+                        { id: sa._id, role: 'admin' },
+                        process.env.JWT_SECRET || 'fallback_secret_key',
+                        { expiresIn: '20d' }
+                    );
+
+                    return res.status(200).json({
+                        success: true,
+                        message: "Superadmin login successful",
+                        token,
+                        user: { id: sa._id, name: sa.name, email: sa.email, role: 'admin' }
+                    });
+                }
+            }
+            // --------------------------
+
+            const users = await db.fetchdata({ email }, 'tblusers', loginSchema);
+            if (users.length === 0) {
+                return res.status(404).json({ success: false, message: "User not found." });
+            }
+
+            const user = users[0];
+
+            if (user.role !== 'admin') {
+                return res.status(403).json({ success: false, message: "Access denied. Admins only." });
+            }
+
+            if (!user.password) {
+                return res.status(401).json({ success: false, message: "Admin password not set. Please use OTP or update your account." });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(401).json({ success: false, message: "Invalid credentials." });
+            }
+
+            const token = jwt.sign(
+                { id: user._id, role: user.role },
+                process.env.JWT_SECRET || 'fallback_secret_key',
+                { expiresIn: '20d' }
+            );
+
+            return res.status(200).json({
+                success: true,
+                message: "Admin login successful",
+                token,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                }
+            });
+
+        } catch (error) {
+            console.error("Admin login error:", error);
             res.status(500).json({ success: false, message: "Internal server error" });
         }
     }

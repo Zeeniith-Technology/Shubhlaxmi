@@ -128,3 +128,57 @@ export async function getTrendingProducts(req, res, next) {
         return next();
     }
 }
+
+// ─────────────────────────────────────────────────────────────────
+// MARQUEE SETTINGS API
+// ─────────────────────────────────────────────────────────────────
+export async function getMarqueeSetting(req, res, next) {
+    try {
+        let setting = await HomeSetting.findOne({ sectionKey: 'marquee_text' });
+
+        if (!setting) {
+            return res.status(200).json({
+                status: true,
+                message: "Success",
+                data: {
+                    sectionKey: 'marquee_text',
+                    textContent: 'STYLED MORE THAN 1M CLIENTS ✨',
+                    isActive: true
+                }
+            });
+        }
+
+        return res.status(200).json({ status: true, message: "Success", data: setting });
+    } catch (error) {
+        req.api_error = { statusCode: 500, message: error.message };
+        return next();
+    }
+}
+
+export async function updateMarqueeSetting(req, res, next) {
+    try {
+        const { textContent, isActive } = req.body;
+
+        let setting = await HomeSetting.findOne({ sectionKey: 'marquee_text' });
+
+        if (setting) {
+            setting.textContent = textContent || '';
+            if (isActive !== undefined) setting.isActive = isActive;
+            setting.updatedAt = new Date().toISOString();
+            await setting.save();
+        } else {
+            setting = new HomeSetting({
+                sectionKey: 'marquee_text',
+                textContent: textContent || 'STYLED MORE THAN 1M CLIENTS ✨',
+                isActive: isActive !== undefined ? isActive : true
+            });
+            await setting.save();
+        }
+
+        return res.status(200).json({ status: true, message: "Marquee setting updated successfully", data: setting });
+
+    } catch (error) {
+        req.api_error = { statusCode: 500, message: error.message };
+        return next();
+    }
+}

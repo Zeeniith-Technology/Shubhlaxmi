@@ -84,8 +84,8 @@ export default function Footer() {
                                     { label: "Shipping Policy", href: "/pages/shipping" },
                                     { label: "Refund Policy", href: "/pages/refund" },
                                     { label: "Privacy Policy", href: "/pages/privacy" },
-                                    { label: "About Us", href: "/pages/about" },
                                     { label: "Terms of Service", href: "/pages/terms" },
+                                    { label: "Contact Information", href: "/pages/contact-information" },
                                 ].map((item) => (
                                     <li key={item.label}>
                                         <Link

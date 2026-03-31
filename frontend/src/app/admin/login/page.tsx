@@ -7,61 +7,34 @@ import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
     const router = useRouter();
-    const [step, setStep] = useState<"request" | "verify">("request");
     const [email, setEmail] = useState("");
-    const [number, setNumber] = useState("");
-    const [otp, setOtp] = useState("");
+    const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const handleRequestOtp = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            const res = await fetch(`${API_BASE}/request-otp`, {
+            const res = await fetch(`${API_BASE}/admin/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, number, name: "Admin User" }),
+                body: JSON.stringify({ email, password }),
             });
 
             const data = await res.json();
             if (data.success) {
-                setStep("verify");
-            } else {
-                setError(data.message || "Failed to request OTP");
-            }
-        } catch (err) {
-            setError("Network error. Is the backend running?");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-
-        try {
-            const res = await fetch(`${API_BASE}/verify-otp`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, otp }),
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                // Save token to localStorage (or cookies for better security)
+                // Save token to localStorage
                 localStorage.setItem("admin_token", data.token);
                 // Redirect to admin dashboard
                 router.push("/admin");
             } else {
-                setError(data.message || "Invalid OTP");
+                setError(data.message || "Invalid credentials");
             }
         } catch (err) {
-            setError("Network error processing OTP");
+            setError("Network error. Is the backend running?");
         } finally {
             setLoading(false);
         }
@@ -80,70 +53,37 @@ export default function AdminLoginPage() {
                     </div>
                 )}
 
-                {step === "request" ? (
-                    <form onSubmit={handleRequestOtp} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Email</label>
-                            <input
-                                type="email"
-                                required
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] text-black"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="admin@amrut.co"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Phone Number (Optional)</label>
-                            <input
-                                type="tel"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] text-black"
-                                value={number}
-                                onChange={(e) => setNumber(e.target.value)}
-                                placeholder="+91 9876543210"
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#ec268f] hover:bg-[#d01e7a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ec268f] disabled:opacity-50"
-                        >
-                            {loading ? "Sending..." : "Send OTP"}
-                        </button>
-                    </form>
-                ) : (
-                    <form onSubmit={handleVerifyOtp} className="space-y-4">
-                        <div className="text-sm text-gray-600 mb-4 text-center">
-                            OTP sent to <strong>{email}</strong>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">4-Digit OTP</label>
-                            <input
-                                type="text"
-                                required
-                                maxLength={4}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] text-center text-2xl tracking-widest text-black"
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value)}
-                                placeholder="••••"
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#ec268f] hover:bg-[#d01e7a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ec268f] disabled:opacity-50"
-                        >
-                            {loading ? "Verifying..." : "Verify & Login"}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setStep("request")}
-                            className="w-full mt-2 text-sm text-gray-500 hover:text-gray-800"
-                        >
-                            Back to Email
-                        </button>
-                    </form>
-                )}
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <input
+                            type="email"
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] text-black"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="admin@email.com"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Password</label>
+                        <input
+                            type="password"
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] text-black"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#ec268f] hover:bg-[#d01e7a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ec268f] disabled:opacity-50"
+                    >
+                        {loading ? "Authenticating..." : "Login"}
+                    </button>
+                </form>
             </div>
         </div>
     );

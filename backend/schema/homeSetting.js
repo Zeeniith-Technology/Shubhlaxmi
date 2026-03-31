@@ -12,6 +12,10 @@ const homeSettingSchema = new mongoose.Schema({
         enum: ['latest', 'category', 'section', 'products'],
         default: 'latest'
     },
+    textContent: {
+        type: String,
+        default: ""
+    },
     // This can hold a categoryId, sectionId, or an array of productIds depending on selectionType
     selectedIds: {
         type: [mongoose.Schema.Types.ObjectId],

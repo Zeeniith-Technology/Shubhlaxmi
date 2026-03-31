@@ -13,6 +13,12 @@ export default function HomepageSettingsPage() {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isActive, setIsActive] = useState(true);
 
+    // Marquee State
+    // Marquee State
+    const [marqueeText, setMarqueeText] = useState("");
+    const [marqueeIsActive, setMarqueeIsActive] = useState(true);
+    const [savingMarquee, setSavingMarquee] = useState(false);
+
     // Reference Data
     const [categories, setCategories] = useState<any[]>([]);
     const [subcategories, setSubCategories] = useState<any[]>([]);
@@ -34,12 +40,31 @@ export default function HomepageSettingsPage() {
                 },
                 body: JSON.stringify({})
             });
-            const resData = await res.json();
-            if (resData.status) {
-                const data = resData.data;
-                setSelectionType(data.selectionType || 'latest');
-                setSelectedIds(data.selectedIds || []);
-                setIsActive(data.isActive !== false);
+            if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
+                const resData = await res.json();
+                if (resData?.status) {
+                    const data = resData.data;
+                    setSelectionType(data?.selectionType || 'latest');
+                    setSelectedIds(data?.selectedIds || []);
+                    setIsActive(data?.isActive !== false);
+                }
+            }
+
+            // Fetch Marquee
+            const resMarquee = await fetch(`${API_BASE}/settings/marquee/get`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({})
+            });
+            if (resMarquee.ok && resMarquee.headers.get("content-type")?.includes("application/json")) {
+                const resMarqData = await resMarquee.json();
+                if (resMarqData?.status && resMarqData?.data?.textContent) {
+                    setMarqueeText(resMarqData.data.textContent);
+                    setMarqueeIsActive(resMarqData.data.isActive !== false);
+                }
             }
         } catch (error) {
             console.error("Error fetching homepage settings", error);
@@ -118,6 +143,37 @@ export default function HomepageSettingsPage() {
         } else {
             // Add ID
             setSelectedIds([...selectedIds, id]);
+        }
+    };
+
+    const handleSaveMarquee = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingMarquee(true);
+        try {
+            const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+            const res = await fetch(`${API_BASE}/settings/marquee/update`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    textContent: marqueeText,
+                    isActive: marqueeIsActive
+                })
+            });
+
+            const data = await res.json();
+            if (data.status) {
+                alert("Marquee settings saved successfully!");
+            } else {
+                alert("Error saving marquee settings.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Failed to save marquee settings.");
+        } finally {
+            setSavingMarquee(false);
         }
     };
 
@@ -244,12 +300,59 @@ export default function HomepageSettingsPage() {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className={`w-full sm:w-auto px-6 py-2.5 bg-[var(--brand-pink)] text-white font-medium rounded-md shadow hover:bg-pink-700 focus:outline-none transition-colors ${saving ? 'opacity-70 cursor-not-allowed' : ''
-                                }`}
+                            className={`w-full sm:w-auto px-6 py-2.5 bg-[var(--brand-pink)] text-white font-medium rounded-md shadow hover:bg-pink-700 focus:outline-none transition-colors ${saving ? 'opacity-70 cursor-not-allowed' : '' }`}
                         >
                             {saving ? 'Saving...' : 'Save Configuration'}
                         </button>
                     </div>
+                    {/* End Section: Trending Styles */}
+
+                    {/* Section: Marquee Settings */}
+                    <div className="bg-gray-50 border border-gray-100 p-6 rounded-lg mt-8">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold text-gray-700">Announcement Bar Settings (Marquee)</h2>
+                            <label className="flex items-center cursor-pointer">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only"
+                                        checked={marqueeIsActive}
+                                        onChange={(e) => setMarqueeIsActive(e.target.checked)}
+                                    />
+                                    <div className={`block w-10 h-6 rounded-full transition-colors ${marqueeIsActive ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${marqueeIsActive ? 'transform translate-x-4' : ''}`}></div>
+                                </div>
+                                <span className="ml-3 text-sm font-medium text-gray-700">
+                                    {marqueeIsActive ? 'Visible' : 'Hidden'}
+                                </span>
+                            </label>
+                        </div>
+                        <form onSubmit={handleSaveMarquee} className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Marquee Text</label>
+                                <input
+                                    type="text"
+                                    value={marqueeText}
+                                    onChange={(e) => setMarqueeText(e.target.value)}
+                                    placeholder="STYLED MORE THAN 1M CLIENTS ✨"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] sm:text-sm text-black"
+                                    required
+                                />
+                                <p className="text-xs text-gray-400 mt-2">Example: <code>FLASH SALE! 50% OFF! ✨</code>. Emojis are supported.</p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-200">
+                                <button
+                                    type="submit"
+                                    disabled={savingMarquee}
+                                    className={`w-full sm:w-auto px-6 py-2.5 bg-gray-900 text-white font-medium rounded-md shadow hover:bg-gray-800 transition-colors ${savingMarquee ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                >
+                                    {savingMarquee ? "Saving..." : "Save Marquee Settings"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
                 </div>
             )}
         </div>

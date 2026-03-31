@@ -13,7 +13,7 @@ import BannerController from './controller/banner.js';
 import specialCollection from './controller/specialCollection.js';
 import { upload } from './config/cloudinary.js';
 import appointment from './controller/appointment.js';
-import { getTrendingProducts, getTrendingSetting, updateTrendingSetting } from './controller/homeSetting.js';
+import { getTrendingProducts, getTrendingSetting, updateTrendingSetting, getMarqueeSetting, updateMarqueeSetting } from './controller/homeSetting.js';
 
 import * as customerAuth from './controller/customerAuth.js';
 import order from './controller/order.js';
@@ -30,6 +30,7 @@ const banner = BannerController; // Already instantiated
 // 2. Authentication Routes
 router.post('/request-otp', loginController.requestOtp);
 router.post('/verify-otp', loginController.verifyOtp);
+router.post('/admin/login', loginController.adminLogin);
 
 // 3. Category Routes
 router.post('/category/add', auth, upload.single('image'), category.addcategory, responsedata);
@@ -57,6 +58,11 @@ router.post('/section/bulkdelete', auth, section.bulkdeletesection, responsedata
 // 7. Bulk Category Routes
 router.post('/category/bulkadd', auth, category.bulkaddcategory, responsedata);
 router.post('/category/bulkupdate', auth, category.bulkupdatecategory, responsedata);
+
+// 8. Settings Routes
+router.post('/settings/marquee/get', auth, getMarqueeSetting, responsedata);
+router.post('/settings/marquee/update', auth, updateMarqueeSetting, responsedata);
+router.get('/public/marquee', getMarqueeSetting);
 router.post('/category/bulkdelete', auth, category.bulkdeletecategory, responsedata);
 
 // 8. Bulk Product Routes

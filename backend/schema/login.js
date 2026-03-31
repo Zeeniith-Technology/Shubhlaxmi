@@ -8,6 +8,10 @@ const loginSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
+    password: {
+        type: String,
+        required: false // Optional because normal users log in via OTP
+    },
     number: {
         type: String
     },

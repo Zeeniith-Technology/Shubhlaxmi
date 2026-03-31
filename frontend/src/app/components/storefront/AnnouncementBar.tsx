@@ -1,14 +1,54 @@
 "use client";
 
-import { Globe2, Sparkles, Video, Gift } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles } from "lucide-react";
 
 export default function AnnouncementBar() {
+    const [marqueeText, setMarqueeText] = useState("STYLED MORE THAN 1M CLIENTS ✨");
+    const [isActive, setIsActive] = useState(true);
+
+    useEffect(() => {
+        const fetchMarquee = async () => {
+            try {
+                const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+                const res = await fetch(`${url}/public/marquee`);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new TypeError("Received non-JSON response from server");
+                }
+
+                const data = await res.json();
+                if (data?.status && data?.data) {
+                    if (data.data.textContent) setMarqueeText(data.data.textContent);
+                    if (data.data.isActive !== undefined) setIsActive(data.data.isActive);
+                }
+            } catch (error) {
+                console.error("Failed to fetch marquee settings:", error);
+                // Fallback state if server is down or returning HTML error pages
+                setMarqueeText("STYLED MORE THAN 1M CLIENTS ✨");
+                setIsActive(true);
+            }
+        };
+        fetchMarquee();
+    }, []);
+
+    if (!isActive) return null;
+
     return (
-        <div className="bg-[var(--brand-pink)] text-white overflow-hidden whitespace-nowrap py-2 relative z-50">
-            <div className="animate-marquee inline-flex gap-16 items-center">
-                {[1, 2].map((i) => (
-                    <span key={i} className="inline-flex gap-16 items-center text-xs sm:text-sm font-[var(--font-body)] tracking-wide">
-                        <span className="flex items-center gap-2 font-bold tracking-widest text-xs uppercase"><Sparkles size={16} className="text-yellow-300" /> STYLED MORE THAN 1M Clients <Sparkles size={16} className="text-yellow-300" /></span>
+        <div className="bg-[var(--brand-pink)] text-white overflow-hidden whitespace-nowrap py-2 relative z-50 flex w-full">
+            <div className="animate-marquee inline-flex gap-16 items-center whitespace-nowrap">
+                {[...Array(10)].map((_, i) => (
+                    <span key={i} className="inline-flex gap-16 items-center text-xs sm:text-sm font-[var(--font-body)] tracking-wide shrink-0">
+                        <span className="flex items-center gap-2 font-bold tracking-widest text-xs uppercase">
+                            <Sparkles size={16} className="text-yellow-300 shrink-0" />
+                            {marqueeText}
+                            <Sparkles size={16} className="text-yellow-300 shrink-0" />
+                        </span>
                     </span>
                 ))}
             </div>
