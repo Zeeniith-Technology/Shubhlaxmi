@@ -2,7 +2,7 @@ export default function PrivacyPolicy() {
     return (
         <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 font-[var(--font-body)]">
             <h1 className="text-3xl md:text-4xl font-bold font-[var(--font-heading)] mb-8 tracking-widest text-[#1a1a1a]">PRIVACY POLICY</h1>
-            
+
             <div className="space-y-6 text-gray-700 leading-relaxed text-[15px]">
                 <p>Shubhlaxmi cares about your shared personal information, we make sure we are here to protect it. Learn more about the privacy policy by reading the following. With your visit to Shubhlaxmi website and domain name and all the linked pages, content, features or application services offered by the company (Mainly, the website), you acknowledge that you accept and allow the practices and policies written in this Privacy Policy.</p>
 
@@ -37,7 +37,7 @@ export default function PrivacyPolicy() {
                 <p>We, Shubhlaxmi have the right to change the terms of this privacy policy at any period of time. We will make the changes within your concerns only. If not, our current privacy policy is applicable to all accounts. We stand behind the promises; we will never change the policies materially in a manner that makes it less protective for the personal information of customers.</p>
 
                 <h2 className="text-xl font-bold text-[#1a1a1a] mt-8 mb-4">Questions and Concerns</h2>
-                <p>If you have any queries or questions regarding this privacy policy, feel free to write us at live@shubhlaxmi.co or give us a call on +91 99090 26788.</p>
+                <p>If you have any queries or questions regarding this privacy policy, feel free to write us at live@shubhlaxmi.co or give us a call on +9198985 76254.</p>
             </div>
         </div>
     );

@@ -16,7 +16,7 @@ export default function Footer() {
             {/* Main Footer Content */}
             <div className="max-w-[1400px] mx-auto px-6 sm:px-6 lg:px-8 py-10 sm:py-16">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 sm:gap-8">
-                    
+
                     {/* Brand Column (Always visible, first on all screens) */}
                     <div className="mb-8 sm:mb-0">
                         <h2 className="text-2xl font-[var(--font-heading)] tracking-widest mb-4">
@@ -41,7 +41,7 @@ export default function Footer() {
 
                     {/* Categories Column */}
                     <div className="border-t border-white/20 sm:border-transparent py-4 sm:py-0">
-                        <button 
+                        <button
                             onClick={() => toggleSection("categories")}
                             className="w-full flex items-center justify-between sm:cursor-default outline-none"
                         >
@@ -68,7 +68,7 @@ export default function Footer() {
 
                     {/* Policies Column */}
                     <div className="border-t border-white/20 sm:border-transparent py-4 sm:py-0">
-                        <button 
+                        <button
                             onClick={() => toggleSection("policies")}
                             className="w-full flex items-center justify-between sm:cursor-default outline-none"
                         >
@@ -102,7 +102,7 @@ export default function Footer() {
 
                     {/* Newsletter & Contact Column */}
                     <div className="border-t border-b border-white/20 sm:border-transparent py-4 sm:py-0">
-                        <button 
+                        <button
                             onClick={() => toggleSection("signup")}
                             className="w-full flex items-center justify-between sm:cursor-default outline-none"
                         >
@@ -111,7 +111,7 @@ export default function Footer() {
                             </h3>
                             <ChevronDown size={16} className={`sm:hidden transition-transform ${openSection === "signup" ? "rotate-180" : ""}`} />
                         </button>
-                        
+
                         <div className={`sm:mt-5 overflow-hidden transition-all duration-300 ${openSection === "signup" ? "max-h-[500px] mt-4" : "max-h-0 sm:max-h-max"}`}>
                             <div className="pb-2 sm:pb-0">
                                 <p className="text-[13px] text-white/90 mb-4 font-[var(--font-body)] leading-relaxed pr-4 sm:pr-0">
@@ -137,8 +137,8 @@ export default function Footer() {
                                         Get In Touch
                                     </h3>
                                     <div className="space-y-3 text-[13px] text-white/90 font-[var(--font-body)]">
-                                        <p className="flex items-center gap-2"><Phone size={14} className="opacity-80"/> Customer Care: +91 99090 26788</p>
-                                        <p className="flex items-center gap-2"><MapPin size={14} className="opacity-80"/> Surat, Gujarat, India</p>
+                                        <p className="flex items-center gap-2"><Phone size={14} className="opacity-80" /> Customer Care: +9198985 76254</p>
+                                        <p className="flex items-center gap-2"><MapPin size={14} className="opacity-80" /> Krishna Icon, Near Townhall, Anand - Vidhyanagar Road, Anand 388001</p>
                                     </div>
                                 </div>
                             </div>

@@ -6,11 +6,11 @@ export default function RefundPolicy() {
             <div className="space-y-6 text-gray-700 leading-relaxed text-[15px]">
                 <ul className="list-disc pl-5 space-y-3">
                     <li>Returns should only be for items that are damaged/defective or are entirely different than to the one which is shown online.</li>
-                    <li>Accessories, bags, blouses are non-returnable and non-exchangeable.</li>
+                    {/* <li>Accessories, bags, blouses are non-returnable and non-exchangeable.</li> */}
                     <li>Sarees with stitched blouses are also non-returnable.</li>
                     <li>Customized & personalized products are non-returnable.</li>
                     <li>Products must be in original condition and include all labels & tags intact.</li>
-                    <li>Petticoat charges are non-refundable.</li>
+                    {/* <li>Petticoat charges are non-refundable.</li> */}
                     <li>Returns are subject to approvals.</li>
                     <li>We do not offer cash refunds.</li>
                 </ul>

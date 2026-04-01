@@ -2,7 +2,7 @@ export default function TermsOfService() {
     return (
         <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 font-[var(--font-body)]">
             <h1 className="text-3xl md:text-4xl font-bold font-[var(--font-heading)] mb-8 tracking-widest text-[#1a1a1a]">TERMS OF SERVICE</h1>
-            
+
             <div className="space-y-6 text-gray-700 leading-relaxed text-[15px]">
                 <h2 className="text-xl font-bold text-[#1a1a1a] mt-8 mb-4">Introduction</h2>
                 <p>Welcome to Shubhlaxmi. In using the service of Shubhlaxmi. You are deemed to have accepted the terms and conditions listed herein.</p>
@@ -18,7 +18,7 @@ export default function TermsOfService() {
 
                 <h2 className="text-xl font-bold text-[#1a1a1a] mt-8 mb-4">Account and Registration Obligations</h2>
                 <p>"Your Information" is defined as any information you provide to us in the registration, buying or listing process, in the feedback area or through any email feature. We will protect Your Information in accordance with our Privacy Policy. If you use the Site, you are responsible for maintaining the confidentiality of Your Account and Password and for restricting access to your computer, and you agree to accept responsibility for all activities that occur under Your Account or Password. Shubhlaxmi shall not be liable to any person for any loss or damage which may arise as a result of any failure by you to protect your password or account. If you know or suspect that someone else knows your password, you should notify us by contacting us immediately through the address provided below. If Shubhlaxmi has reason to believe that there is likely to be a breach of security or misuse of the Shubhlaxmi Site, we may require you to change your password or we may suspend your account without any liability to Shubhlaxmi.</p>
-                
+
                 <p className="font-bold">You also agree to:</p>
                 <ul className="list-disc pl-5 space-y-2">
                     <li>Provide true, accurate, current and complete information about yourself in Shubhlaxmi's registration form (such information being the "Registration Data").</li>
@@ -34,7 +34,7 @@ export default function TermsOfService() {
 
                 <h2 className="text-xl font-bold text-[#1a1a1a] mt-8 mb-4">Credit Card Details</h2>
                 <p>You agree, understand and confirm that the credit card details provided by you for availing of services on Shubhlaxmi will be correct and accurate and you shall not use the credit card which is not lawfully owned by you, i.e. in a credit card transaction, you must use your own credit card. You further agree and undertake to provide the correct and valid credit card details when making payment on Shubhlaxmi. Your credit card information never reaches Shubhlaxmi, we just get a pass, hold or fail message from our payment gateways. The said information will not be utilised and shared by our payment gateways or Shubhlaxmi with any of the third parties unless required for fraud verifications or by law, regulation or court order. Shubhlaxmi will not be liable for any credit card fraud. The liability for use of a card fraudulently will be on you and the onus to 'prove otherwise' shall be exclusively on you.</p>
-                <p>If you face any issues with the payment, you can inform us within 48 hours of the payment via call at: +91 99090 26788 24/7 or email us at live@shubhlaxmi.co for quick chat now even you can whatsapp us at +91 99090 26788</p>
+                <p>If you face any issues with the payment, you can inform us within 48 hours of the payment via call at: +9198985 76254 24/7 or email us at live@shubhlaxmi.co for quick chat now even you can whatsapp us at +9198985 76254</p>
 
                 <h2 className="text-xl font-bold text-[#1a1a1a] mt-8 mb-4">Fraudulent / Declined Transactions</h2>
                 <p>Shubhlaxmi reserves the right to recover the cost of goods, collection charges and lawyers fees from persons using the Site fraudulently. Shubhlaxmi reserves the right to initiate legal proceedings against such persons for fraudulent use of the Site and any other unlawful acts or acts or omissions in breach of these terms and conditions.</p>

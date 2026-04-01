@@ -10,9 +10,10 @@ export default function ShippingPolicy() {
                 <ul className="list-disc pl-5 space-y-2">
                     <li>All products shall be shipped from India.</li>
                     <li>Customers are requested to provide full addresses with the postal code and phone number.</li>
-                    <li>Our average delivery time within India is 4-5 working days, in case of some unusual happenings it may take longer. Delivery timeline for make to order may differ and take up to 30 working days.</li>
+                    <li>Our average delivery time within India is 7-10 working days, in case of some unusual happenings it may take longer. Delivery timeline for make to order may differ and take up to 30 working days.</li>
                     <li>In case you purchase multiple products in one order, all products will be dispatched together.</li>
                     <li>Shipping cost will depend upon the area you have put up during check out.</li>
+                    <li>Free delivery within India</li>
                     <li>Shubhlaxmi will not be liable for delays resulting from incomplete address listings or incorrect spelling or pin code errors. In such cases the customer will have to bear the reshipping charges.</li>
                 </ul>
 
@@ -22,7 +23,7 @@ export default function ShippingPolicy() {
 
                 <ul className="list-disc pl-5 space-y-2">
                     <li>All products shall be shipped from India.</li>
-                    <li>It takes about 10-12 days to ship the international orders. In case of any mishap, it may take a bit longer than usual.</li>
+                    <li>It takes about 20-25 working days to ship the international orders. In case of any mishap, it may take a bit longer than usual.</li>
                     <li>You can track your order online.</li>
                 </ul>
             </div>
