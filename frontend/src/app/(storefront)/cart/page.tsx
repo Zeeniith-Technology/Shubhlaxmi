@@ -2,12 +2,14 @@
 
 import { useCart } from "../../context/CartContext";
 import { useCurrency } from "../../context/CurrencyContext";
+import { useStoreSettings } from "../../context/StoreSettingsContext";
 import Link from "next/link";
 import { Trash2, Plus, Minus, ArrowRight } from "lucide-react";
 
 export default function CartPage() {
     const { cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useCart();
     const { formatPrice } = useCurrency();
+    const { settings } = useStoreSettings();
 
     if (cart.length === 0) {
         return (
@@ -119,12 +121,28 @@ export default function CartPage() {
                             </div>
                         </div>
 
-                        <Link
-                            href="/checkout"
-                            className="w-full py-4 bg-[var(--brand-pink)] text-white rounded-md text-sm font-semibold tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[var(--brand-pink-hover)] transition-all shadow-md hover:shadow-lg"
-                        >
-                            Proceed to Checkout <ArrowRight size={18} />
-                        </Link>
+                        {settings.whatsappCheckoutEnabled ? (
+                            <button
+                                onClick={() => {
+                                    const itemsList = cart.map(item => `- ${item.quantity}x ${item.product.title} (${formatPrice(item.product.price * item.quantity)})`).join('%0A');
+                                    const message = `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}%0A%0A*Total Amount:* ${formatPrice(cartTotal)}%0A%0APlease let me know how to proceed with payment and shipping.`;
+                                    
+                                    const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
+                                    window.open(whatsappUrl, '_blank');
+                                }}
+                                className="w-full py-4 bg-[#25D366] text-white rounded-md text-sm font-semibold tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-all shadow-md hover:shadow-lg"
+                            >
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="css-i6dzq1"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                Order via WhatsApp
+                            </button>
+                        ) : (
+                            <Link
+                                href="/checkout"
+                                className="w-full py-4 bg-[var(--brand-pink)] text-white rounded-md text-sm font-semibold tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[var(--brand-pink-hover)] transition-all shadow-md hover:shadow-lg"
+                            >
+                                Proceed to Checkout <ArrowRight size={18} />
+                            </Link>
+                        )}
 
                         <div className="mt-6 text-center">
                             <p className="text-xs text-gray-500 flex items-center justify-center gap-1">

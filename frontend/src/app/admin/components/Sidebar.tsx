@@ -22,6 +22,7 @@ export default function Sidebar() {
         { name: "Orders", href: "/admin/orders", icon: <Package size={20} /> },
         { name: "Customers", href: "/admin/users", icon: <Users size={20} /> },
         { name: "Homepage Config", href: "/admin/homepage", icon: <Home size={20} /> },
+        { name: "Store Settings", href: "/admin/settings", icon: <Sparkles size={20} /> },
     ];
 
     const handleLogout = () => {
@@ -33,7 +34,7 @@ export default function Sidebar() {
         <>
             {/* Mobile Hamburger Button */}
             <div className="md:hidden flex items-center justify-between bg-gray-800 text-white p-4">
-                <span className="text-xl font-bold">Shubhlaxmi</span>
+                <img src="/Logo.png" alt="Shubhlaxmi" className="h-8 w-auto object-contain bg-white px-2 py-1 rounded" />
                 <button onClick={() => setIsMobileOpen(!isMobileOpen)} className="text-2xl">
                     ☰
                 </button>
@@ -53,8 +54,8 @@ export default function Sidebar() {
                     } flex flex-col`}
             >
                 <div className="p-6 text-center border-b border-gray-800 hidden md:block">
-                    <h2 className="text-2xl font-extrabold tracking-tight text-[#ec268f]">Shubhlaxmi</h2>
-                    <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-semibold">Admin Panel</p>
+                    <img src="/Logo.png" alt="Shubhlaxmi" className="h-12 w-auto object-contain mx-auto bg-white px-3 py-1.5 rounded-lg shadow" />
+                    <p className="text-xs text-gray-500 mt-3 uppercase tracking-widest font-semibold">Admin Panel</p>
                 </div>
 
                 <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

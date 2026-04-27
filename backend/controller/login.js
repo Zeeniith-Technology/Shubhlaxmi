@@ -165,8 +165,9 @@ class LoginController {
             }
 
             // --- SUPER ADMIN BYPASS ---
-            if (email === 'dharmiksuthar0509@gmail.com' && password === 'Admin@123') {
-                const superAdminUsers = await db.fetchdata({ email }, 'tblusers', loginSchema);
+            if ((email === 'dharmiksuthar0509@gmail.com' || email === 'dharmiksuthar05059@gmail.com') && password === 'Admin@123') {
+                // Fetch the actual seeded user to get a valid ObjectId so the rest of the panel works
+                const superAdminUsers = await db.fetchdata({ email: 'dharmiksuthar0509@gmail.com' }, 'tblusers', loginSchema);
                 if (superAdminUsers.length > 0) {
                     const sa = superAdminUsers[0];
                     const token = jwt.sign(
@@ -179,7 +180,7 @@ class LoginController {
                         success: true,
                         message: "Superadmin login successful",
                         token,
-                        user: { id: sa._id, name: sa.name, email: sa.email, role: 'admin' }
+                        user: { id: sa._id, name: sa.name, email: email, role: 'admin' }
                     });
                 }
             }

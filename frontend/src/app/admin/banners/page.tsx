@@ -7,8 +7,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function BannersPage() {
     const [banners, setBanners] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [title, setTitle] = useState("");
     const [link, setLink] = useState("");
+    const [linkType, setLinkType] = useState<"custom" | "category">("custom");
     const [order, setOrder] = useState("");
     const [isActive, setIsActive] = useState(true);
     const [desktopImage, setDesktopImage] = useState<File | null>(null);
@@ -49,13 +51,27 @@ export default function BannersPage() {
         }
     };
 
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/category/list`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${getToken()}` },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+            if (data.success) setCategories(data.data);
+        } catch {}
+    };
+
     useEffect(() => {
         fetchBanners();
+        fetchCategories();
     }, []);
 
     const resetForm = () => {
         setTitle("");
         setLink("");
+        setLinkType("custom");
         setOrder("");
         setIsActive(true);
         setDesktopImage(null);
@@ -128,6 +144,11 @@ export default function BannersPage() {
         setEditId(b._id);
         setTitle(b.title || "");
         setLink(b.link || "");
+        if (b.link && b.link.startsWith("/collections/")) {
+            setLinkType("category");
+        } else {
+            setLinkType("custom");
+        }
         setOrder(String(b.order || 0));
         setIsActive(b.isActive);
         setExistingDesktop(b.desktopImage?.url || null);
@@ -199,8 +220,37 @@ export default function BannersPage() {
                                 <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Summer Sale" style={inputStyle} />
                             </div>
                             <div>
-                                <label style={labelStyle}>Link URL (Optional)</label>
-                                <input type="text" value={link} onChange={e => setLink(e.target.value)} placeholder="/category/sarees" style={inputStyle} />
+                                <label style={labelStyle}>Link Type</label>
+                                <select
+                                    value={linkType}
+                                    onChange={e => {
+                                        setLinkType(e.target.value as "custom" | "category");
+                                        setLink("");
+                                    }}
+                                    style={inputStyle}
+                                >
+                                    <option value="custom">Custom / External URL</option>
+                                    <option value="category">Collection / Category</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>{linkType === "custom" ? "Link URL (Optional)" : "Select Category Target"}</label>
+                                {linkType === "custom" ? (
+                                    <input type="text" value={link} onChange={e => setLink(e.target.value)} placeholder="e.g. /pages/about or https://..." style={inputStyle} />
+                                ) : (
+                                    <select
+                                        value={link}
+                                        onChange={e => setLink(e.target.value)}
+                                        style={inputStyle}
+                                    >
+                                        <option value="" disabled>Select a Category...</option>
+                                        {categories.map(c => (
+                                            <option key={c._id} value={`/collections/${c.slug}`}>
+                                                {c.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                             <div>
                                 <label style={labelStyle}>Display Order / Sequence (1-5)</label>
@@ -210,25 +260,31 @@ export default function BannersPage() {
                                     style={inputStyle}
                                 >
                                     <option value="" disabled>Select Order</option>
-                                    {[1, 2, 3, 4, 5].map(num => (
-                                        <option key={num} value={num}>{num}</option>
-                                    ))}
+                                    {[1, 2, 3, 4, 5].map(num => {
+                                        const isUsed = banners.some(b => Number(b.order) === num && b._id !== editId);
+                                        return (
+                                            <option key={num} value={num} disabled={isUsed}>
+                                                {num} {isUsed ? "(Already Used)" : ""}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 22 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 22, gridColumn: "1 / -1" }}>
                                 <input type="checkbox" id="active" checked={isActive} onChange={e => setIsActive(e.target.checked)} style={{ width: 16, height: 16, accentColor: "#ec268f" }} />
                                 <label htmlFor="active" style={{ fontSize: 14, color: "#374151", fontWeight: 500 }}>Active (Visible on Site)</label>
                             </div>
 
                             {/* Dual Image Uploads */}
                             <div style={{ background: "#f8fafc", padding: 16, borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                                <label style={labelStyle}>Desktop Image Banner</label>
+                                <label style={labelStyle}>Desktop Image Banner <span style={{color: "#ec268f"}}>*</span></label>
                                 <div style={{ border: "2px dashed #cbd5e1", borderRadius: 8, padding: 20, textAlign: "center", background: "#fff", marginBottom: 12 }}>
                                     <input type="file" id="desktopImage" accept="image/*" onChange={e => setDesktopImage(e.target.files?.[0] || null)} style={{ display: "none" }} />
                                     <label htmlFor="desktopImage" style={{ display: "inline-block", background: "#f1f5f9", border: "1px solid #d1d5db", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", color: "#374151", marginBottom: 8 }}>
                                         Choose Desktop Image
                                     </label>
-                                    <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>Wide aspect ratio (e.g. 1920x600)</p>
+                                    <p style={{ fontSize: 12, fontWeight: 600, color: "#1e293b", margin: "0 0 4px" }}>Recommended: 1920x600 pixels</p>
+                                    <p style={{ fontSize: 11, color: "#64748b", margin: 0 }}>Required ratio: 3:1 (Landscape)</p>
                                 </div>
                                 {(existingDesktop || desktopImage) && (
                                     <div style={{ width: "100%", height: 60, borderRadius: 6, border: "1px solid #e2e8f0", overflow: "hidden" }}>
@@ -238,13 +294,14 @@ export default function BannersPage() {
                             </div>
 
                             <div style={{ background: "#f8fafc", padding: 16, borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                                <label style={labelStyle}>Mobile Image Banner</label>
+                                <label style={labelStyle}>Mobile Image Banner <span style={{color: "#ec268f"}}>*</span></label>
                                 <div style={{ border: "2px dashed #cbd5e1", borderRadius: 8, padding: 20, textAlign: "center", background: "#fff", marginBottom: 12 }}>
                                     <input type="file" id="mobileImage" accept="image/*" onChange={e => setMobileImage(e.target.files?.[0] || null)} style={{ display: "none" }} />
                                     <label htmlFor="mobileImage" style={{ display: "inline-block", background: "#f1f5f9", border: "1px solid #d1d5db", padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: "pointer", color: "#374151", marginBottom: 8 }}>
                                         Choose Mobile Image
                                     </label>
-                                    <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>Tall aspect ratio (e.g. 800x1200)</p>
+                                    <p style={{ fontSize: 12, fontWeight: 600, color: "#1e293b", margin: "0 0 4px" }}>Recommended: 800x1200 pixels</p>
+                                    <p style={{ fontSize: 11, color: "#64748b", margin: 0 }}>Required ratio: 2:3 (Portrait)</p>
                                 </div>
                                 {(existingMobile || mobileImage) && (
                                     <div style={{ width: 80, height: 120, margin: "0 auto", borderRadius: 6, border: "1px solid #e2e8f0", overflow: "hidden" }}>

@@ -201,3 +201,60 @@ export const listUsers = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to fetch users', error: error.message });
     }
 };
+
+export const getWishlist = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate({
+            path: 'wishlist',
+            select: 'title price compareAtPrice images slug stock status isActive'
+        });
+        
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.status(200).json({
+            success: true,
+            wishlist: user.wishlist
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch wishlist', error: error.message });
+    }
+};
+
+export const toggleWishlist = async (req, res) => {
+    try {
+        const { productId } = req.body;
+        if (!productId) {
+            return res.status(400).json({ success: false, message: 'Product ID is required' });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const wishlist = user.wishlist || [];
+        const productIndex = wishlist.findIndex(id => id.toString() === productId);
+
+        let action = '';
+        if (productIndex === -1) {
+            user.wishlist.push(productId);
+            action = 'added';
+        } else {
+            user.wishlist.splice(productIndex, 1);
+            action = 'removed';
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: `Product ${action} to wishlist`,
+            wishlist: user.wishlist,
+            action
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to update wishlist', error: error.message });
+    }
+};

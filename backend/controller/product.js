@@ -81,9 +81,70 @@ class ProductController {
     async listproduct(req, res, next) {
         try {
             await db.checkTableExists('tblproducts', productSchema);
-            const filter = req.body || {};
+            const { categoryId, minPrice, maxPrice, sort, search, ids, ...rest } = req.body || {};
+            
+            let filter = { ...rest };
+            
+            if (categoryId) filter.categoryId = categoryId;
+            
+            if (ids && Array.isArray(ids) && ids.length > 0) {
+                filter._id = { $in: ids };
+            }
 
-            const data = await db.fetchdata(filter, 'tblproducts', productSchema);
+            // Advanced price filtering
+            if (minPrice !== undefined || maxPrice !== undefined) {
+                filter.price = {};
+                if (minPrice !== undefined) filter.price.$gte = Number(minPrice);
+                if (maxPrice !== undefined) filter.price.$lte = Number(maxPrice);
+            }
+
+            if (search) {
+                filter.title = { $regex: search, $options: 'i' };
+            }
+
+            // Sort logic
+            let sortQuery = {};
+            if (sort === "price-asc") sortQuery.price = 1;
+            else if (sort === "price-desc") sortQuery.price = -1;
+            else if (sort === "newest") sortQuery.createdAt = -1;
+            else if (sort === "title-asc") sortQuery.title = 1;
+            else if (sort === "title-desc") sortQuery.title = -1;
+            else sortQuery.createdAt = -1; // default featured/newest
+
+            const pipeline = [
+                { $match: filter },
+                {
+                    $lookup: {
+                        from: 'tblcategories',
+                        localField: 'categoryId',
+                        foreignField: '_id',
+                        as: 'categoryId'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$categoryId',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'tblsections',
+                        localField: 'sectionId',
+                        foreignField: '_id',
+                        as: 'sectionId'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$sectionId',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                { $sort: sortQuery }
+            ];
+
+            const data = await db.fetchdata(filter, 'tblproducts', productSchema, pipeline, true);
 
             req.api_data = data;
             next();

@@ -29,9 +29,9 @@ export default function CategoriesPage() {
 
     // Bulk modals
     const [bulkAddOpen, setBulkAddOpen] = useState(false);
-    const [bulkAddItems, setBulkAddItems] = useState<{ name: string; sectionId: string; parentCategoryId: string }[]>([{ name: "", sectionId: "", parentCategoryId: "" }]);
+    const [bulkAddItems, setBulkAddItems] = useState<{ name: string; sectionId: string; parentCategoryId: string; image?: File | null }[]>([{ name: "", sectionId: "", parentCategoryId: "", image: null }]);
     const [bulkEditOpen, setBulkEditOpen] = useState(false);
-    const [bulkEditItems, setBulkEditItems] = useState<{ id: string; name: string }[]>([]);
+    const [bulkEditItems, setBulkEditItems] = useState<{ id: string; name: string; image?: File | null }[]>([]);
 
     // Delete Confirmation Modals
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -135,12 +135,19 @@ export default function CategoriesPage() {
         if (valid.length === 0) { showMsg(activeTab === "subcategories" ? "Fill Name, Section, and Parent for at least one row" : "Fill Name and Section for at least one row", "error"); return; }
         setLoading(true);
         try {
+            const formData = new FormData();
+            const itemsData = valid.map(i => ({ name: i.name, sectionId: i.sectionId, ...(i.parentCategoryId ? { parentCategoryId: i.parentCategoryId } : {}) }));
+            formData.append('items', JSON.stringify(itemsData));
+            valid.forEach((item, i) => {
+                if (item.image) formData.append(`image_${i}`, item.image);
+            });
+
             const res = await fetch(`${API_BASE}/category/bulkadd`, {
-                method: "POST", headers: headers(),
-                body: JSON.stringify({ items: valid.map(i => ({ name: i.name, sectionId: i.sectionId, ...(i.parentCategoryId ? { parentCategoryId: i.parentCategoryId } : {}) })) })
+                method: "POST", headers: { "Authorization": `Bearer ${getToken()}` },
+                body: formData
             });
             const data = await res.json();
-            if (data.success) { setBulkAddOpen(false); setBulkAddItems([{ name: "", sectionId: "", parentCategoryId: "" }]); fetchCategories(); showMsg(data.message); }
+            if (data.success) { setBulkAddOpen(false); setBulkAddItems([{ name: "", sectionId: "", parentCategoryId: "", image: null }]); fetchCategories(); showMsg(data.message); }
             else showMsg(data.message, "error");
         } catch { showMsg("Bulk add failed", "error"); }
         finally { setLoading(false); }
@@ -148,14 +155,21 @@ export default function CategoriesPage() {
 
     const openBulkEdit = () => {
         if (selected.length === 0) { showMsg("Select categories first", "error"); return; }
-        setBulkEditItems(categories.filter(c => selected.includes(c._id)).map(c => ({ id: c._id, name: c.name })));
+        setBulkEditItems(categories.filter(c => selected.includes(c._id)).map(c => ({ id: c._id, name: c.name, image: null })));
         setBulkEditOpen(true);
     };
 
     const handleBulkUpdate = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/category/bulkupdate`, { method: "POST", headers: headers(), body: JSON.stringify({ items: bulkEditItems }) });
+            const formData = new FormData();
+            const itemsData = bulkEditItems.map(i => ({ id: i.id, name: i.name }));
+            formData.append('items', JSON.stringify(itemsData));
+            bulkEditItems.forEach((item, i) => {
+                if (item.image) formData.append(`image_${i}`, item.image);
+            });
+
+            const res = await fetch(`${API_BASE}/category/bulkupdate`, { method: "POST", headers: { "Authorization": `Bearer ${getToken()}` }, body: formData });
             const data = await res.json();
             if (data.success) { setBulkEditOpen(false); setSelected([]); fetchCategories(); showMsg(data.message); }
             else showMsg(data.message, "error");
@@ -423,11 +437,11 @@ export default function CategoriesPage() {
             {/* Bulk Add Modal */}
             {bulkAddOpen && (
                 <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setBulkAddOpen(false)}>
-                    <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 28, width: 580, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,.15)", maxHeight: "80vh", overflowY: "auto" }}>
+                    <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 28, width: 680, maxWidth: "95vw", boxShadow: "0 20px 60px rgba(0,0,0,.15)", maxHeight: "80vh", overflowY: "auto" }}>
                         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 16 }}>Bulk Add {activeTab === "categories" ? "Categories" : "Subcategories"}</h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                             {bulkAddItems.map((item, idx) => (
-                                <div key={idx} style={{ display: "grid", gridTemplateColumns: activeTab === "subcategories" ? "1fr 1fr 1fr 32px" : "1fr 1fr 32px", gap: 8, alignItems: "center" }}>
+                                <div key={idx} style={{ display: "grid", gridTemplateColumns: activeTab === "subcategories" ? "1fr 1fr 1fr 80px 32px" : "1fr 1fr 80px 32px", gap: 8, alignItems: "center" }}>
                                     <input placeholder="Name" value={item.name} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], name: e.target.value }; setBulkAddItems(c); }} style={inputStyle} />
                                     <div style={{ zIndex: 100 - idx }}>
                                         <CustomSelect
@@ -448,13 +462,20 @@ export default function CategoriesPage() {
                                             />
                                         </div>
                                     )}
+                                    <div style={{ position: "relative" }}>
+                                        <input type="file" accept="image/*" id={`bulk-add-img-${idx}`} style={{ display: "none" }}
+                                            onChange={e => { const c = [...bulkAddItems]; c[idx].image = e.target.files?.[0] || null; setBulkAddItems(c); }} />
+                                        <label htmlFor={`bulk-add-img-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 42, background: item.image ? "#dcfce7" : "#f1f5f9", color: item.image ? "#166534" : "#475569", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, border: item.image ? "1px solid #bbf7d0" : "1px solid #cbd5e1" }}>
+                                            {item.image ? "Img ✓" : "+ Img"}
+                                        </label>
+                                    </div>
                                     {bulkAddItems.length > 1 ? (
                                         <button onClick={() => setBulkAddItems(bulkAddItems.filter((_, i) => i !== idx))} style={{ background: "none", border: "none", color: "#ef4444", fontSize: 18, cursor: "pointer", padding: 0 }}>×</button>
                                     ) : <div />}
                                 </div>
                             ))}
                         </div>
-                        <button onClick={() => setBulkAddItems([...bulkAddItems, { name: "", sectionId: "", parentCategoryId: "" }])}
+                        <button onClick={() => setBulkAddItems([...bulkAddItems, { name: "", sectionId: "", parentCategoryId: "", image: null }])}
                             style={{ marginTop: 10, background: "none", border: "1px dashed #d1d5db", color: "#64748b", fontSize: 13, padding: "8px 14px", borderRadius: 6, cursor: "pointer", width: "100%" }}>+ Add another row</button>
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
                             <button onClick={() => setBulkAddOpen(false)} style={{ padding: "8px 18px", background: "#f1f5f9", color: "#475569", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Cancel</button>
@@ -469,11 +490,20 @@ export default function CategoriesPage() {
                 <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setBulkEditOpen(false)}>
                     <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 28, width: 500, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,.15)" }}>
                         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 16 }}>Bulk Edit Categories</h3>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 300, overflowY: "auto" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 400, overflowY: "auto" }}>
                             {bulkEditItems.map((item, idx) => (
-                                <input key={item.id} type="text" value={item.name}
-                                    onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], name: e.target.value }; setBulkEditItems(c); }}
-                                    style={inputStyle} />
+                                <div key={item.id} style={{ display: "flex", gap: 8 }}>
+                                    <input type="text" value={item.name}
+                                        onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], name: e.target.value }; setBulkEditItems(c); }}
+                                        style={{ ...inputStyle, flex: 1 }} />
+                                    <div style={{ position: "relative" }}>
+                                        <input type="file" accept="image/*" id={`bulk-edit-img-${idx}`} style={{ display: "none" }}
+                                            onChange={e => { const c = [...bulkEditItems]; c[idx].image = e.target.files?.[0] || null; setBulkEditItems(c); }} />
+                                        <label htmlFor={`bulk-edit-img-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 42, width: 80, background: item.image ? "#dcfce7" : "#f1f5f9", color: item.image ? "#166534" : "#475569", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, border: item.image ? "1px solid #bbf7d0" : "1px solid #cbd5e1" }}>
+                                            {item.image ? "Img ✓" : "New Img"}
+                                        </label>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>

@@ -75,7 +75,11 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         if (isNaN(numPrice)) return "₹0";
 
         const rate = rates[currency] || defaultRates[currency] || 1;
-        const converted = numPrice * rate;
+        
+        // Add a 5% markup to all foreign currencies to cover payment gateway forex fees and spread.
+        // This prevents business losses when capturing international payments.
+        const markup = currency === "INR" ? 1 : 1.05;
+        const converted = numPrice * rate * markup;
 
         return new Intl.NumberFormat("en-US", {
             style: "currency",

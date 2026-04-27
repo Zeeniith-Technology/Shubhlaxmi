@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
-import { Tenor_Sans, Outfit } from "next/font/google";
+import { Marcellus } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
-const tenorSans = Tenor_Sans({
+const marcellus = Marcellus({
   weight: "400",
   subsets: ["latin"],
-  variable: "--font-tenor",
-  display: "swap",
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-marcellus",
   display: "swap",
 });
 
@@ -28,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning className={`${tenorSans.variable} ${outfit.variable} antialiased`}>
+      <body suppressHydrationWarning className={`${marcellus.variable} antialiased`}>
         {children}
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       </body>

@@ -38,13 +38,27 @@ export default function VideoAppointmentPage() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
-
-    // Disable past dates
-    const today = new Date().toISOString().split('T')[0];
+    const [bookedSlots, setBookedSlots] = useState<string[]>([]);
 
     useEffect(() => {
-        // Handled entirely by the initialized Date object now
-    }, []);
+        if (!date) return;
+        const fetchBookedSlots = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/public/appointment/booked-slots`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: format(date, "yyyy-MM-dd") })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setBookedSlots(data.data || []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch booked slots", err);
+            }
+        };
+        fetchBookedSlots();
+    }, [date]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -161,7 +175,7 @@ export default function VideoAppointmentPage() {
                             Step 1: Choose Date & Time
                         </h2>
 
-                        <div className="mb-8 relative z-50">
+                        <div className="mb-8 relative z-30">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
                             <div className="relative">
                                 <DatePicker
@@ -184,19 +198,26 @@ export default function VideoAppointmentPage() {
                                 Available Slots for {format(date, "MMM do")}
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {ALL_SLOTS.map(slot => (
-                                    <button
-                                        key={slot}
-                                        type="button"
-                                        onClick={() => setSelectedSlot(slot)}
-                                        className={`py-2 px-1 text-xs sm:text-[13px] font-medium rounded-lg border transition-all ${selectedSlot === slot
-                                            ? 'bg-pink-50 border-[var(--brand-pink)] text-[var(--brand-pink)] shadow-sm'
-                                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                {ALL_SLOTS.map(slot => {
+                                    const isBooked = bookedSlots.includes(slot);
+                                    return (
+                                        <button
+                                            key={slot}
+                                            type="button"
+                                            disabled={isBooked}
+                                            onClick={() => !isBooked && setSelectedSlot(slot)}
+                                            className={`py-2 px-1 text-xs sm:text-[13px] font-medium rounded-lg border transition-all ${
+                                                isBooked 
+                                                    ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60 line-through'
+                                                    : selectedSlot === slot
+                                                        ? 'bg-pink-50 border-[var(--brand-pink)] text-[var(--brand-pink)] shadow-sm'
+                                                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                                             }`}
-                                    >
-                                        {slot}
-                                    </button>
-                                ))}
+                                        >
+                                            {slot}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

@@ -145,7 +145,10 @@ class CategoryController {
     // 5. Bulk Add Categories — body: { items: [{ name, sectionId }, ...] }
     async bulkaddcategory(req, res, next) {
         try {
-            const { items } = req.body;
+            let { items } = req.body;
+            if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch (e) { }
+            }
             if (!items || !Array.isArray(items) || items.length === 0) {
                 req.api_error = { statusCode: 400, message: "items array is required" };
                 return next();
@@ -160,6 +163,15 @@ class CategoryController {
                     if (items[i].name && !items[i].slug) {
                         items[i].slug = items[i].name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
                     }
+                    
+                    // Handle image upload mapping (field name expected to be image_0, image_1, etc.)
+                    if (req.files && Array.isArray(req.files)) {
+                        const file = req.files.find(f => f.fieldname === `image_${i}`);
+                        if (file) {
+                            items[i].image = { url: file.path, publicId: file.filename };
+                        }
+                    }
+
                     const result = await db.executdata('tblcategories', categorySchema, 'i', items[i]);
                     results.push(result);
                 } catch (err) {
@@ -181,7 +193,10 @@ class CategoryController {
     // 6. Bulk Update Categories — body: { items: [{ id, name }, ...] }
     async bulkupdatecategory(req, res, next) {
         try {
-            const { items } = req.body;
+            let { items } = req.body;
+            if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch (e) { }
+            }
             if (!items || !Array.isArray(items) || items.length === 0) {
                 req.api_error = { statusCode: 400, message: "items array is required" };
                 return next();
@@ -198,6 +213,23 @@ class CategoryController {
                     if (updateFields.name && !updateFields.slug) {
                         updateFields.slug = updateFields.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
                     }
+
+                    // Handle image upload
+                    if (req.files && Array.isArray(req.files)) {
+                        const file = req.files.find(f => f.fieldname === `image_${i}`);
+                        if (file) {
+                            // Determine existing category to delete old image
+                            const existingCategoryArray = await db.fetchdata({ _id: id }, 'tblcategories', categorySchema);
+                            if (existingCategoryArray && existingCategoryArray.length > 0) {
+                                const existingCat = existingCategoryArray[0];
+                                if (existingCat.image && existingCat.image.publicId) {
+                                    try { await deleteImage(existingCat.image.publicId); } catch (e) { /* ignore */ }
+                                }
+                            }
+                            updateFields.image = { url: file.path, publicId: file.filename };
+                        }
+                    }
+
                     const result = await db.executdata('tblcategories', categorySchema, 'u', {
                         condition: { _id: id },
                         update: updateFields

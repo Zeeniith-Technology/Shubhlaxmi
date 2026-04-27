@@ -14,6 +14,7 @@ import specialCollection from './controller/specialCollection.js';
 import { upload } from './config/cloudinary.js';
 import appointment from './controller/appointment.js';
 import { getTrendingProducts, getTrendingSetting, updateTrendingSetting, getMarqueeSetting, updateMarqueeSetting } from './controller/homeSetting.js';
+import { getStoreSettings, updateStoreSettings } from './controller/storeSetting.js';
 
 import * as customerAuth from './controller/customerAuth.js';
 import order from './controller/order.js';
@@ -56,8 +57,8 @@ router.post('/section/bulkupdate', auth, section.bulkupdatesection, responsedata
 router.post('/section/bulkdelete', auth, section.bulkdeletesection, responsedata);
 
 // 7. Bulk Category Routes
-router.post('/category/bulkadd', auth, category.bulkaddcategory, responsedata);
-router.post('/category/bulkupdate', auth, category.bulkupdatecategory, responsedata);
+router.post('/category/bulkadd', auth, upload.any(), category.bulkaddcategory, responsedata);
+router.post('/category/bulkupdate', auth, upload.any(), category.bulkupdatecategory, responsedata);
 
 // 8. Settings Routes
 router.post('/settings/marquee/get', auth, getMarqueeSetting, responsedata);
@@ -113,6 +114,9 @@ router.post('/customer/address/add', authCustomer, customerAuth.addAddress);
 router.post('/customer/address/update', authCustomer, customerAuth.updateAddress);
 router.post('/customer/address/delete', authCustomer, customerAuth.deleteAddress);
 
+router.post('/customer/wishlist/get', authCustomer, customerAuth.getWishlist);
+router.post('/customer/wishlist/toggle', authCustomer, customerAuth.toggleWishlist);
+
 router.post('/customer/order/add', authCustomer, order.placeOrder, responsedata);
 router.post('/customer/order/history', authCustomer, order.getMyOrders, responsedata);
 
@@ -125,6 +129,7 @@ router.post('/customer/list', auth, customerAuth.listUsers);
 
 // 14. Appointment Routes
 router.post('/public/appointment/add', appointment.addappointment, responsedata);
+router.post('/public/appointment/booked-slots', appointment.listBookedSlots, responsedata);
 router.post('/appointment/list', auth, appointment.listappointment, responsedata);
 router.post('/appointment/update', auth, appointment.updateappointment, responsedata);
 router.post('/appointment/delete', auth, appointment.deleteappointment, responsedata);
@@ -142,5 +147,9 @@ router.post('/order/delete', auth, order.deleteorder, responsedata);
 router.post('/settings/trending/get', getTrendingSetting);
 router.post('/settings/trending/update', auth, updateTrendingSetting);
 router.post('/storefront/trending-products', getTrendingProducts);
+
+// Global Store Settings (WhatsApp Checkout, etc)
+router.post('/public/store-settings', getStoreSettings);
+router.post('/admin/store-settings/update', auth, updateStoreSettings);
 
 export default router;

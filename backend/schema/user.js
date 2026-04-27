@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema({
         country: String,
         isDefault: { type: Boolean, default: false }
     }],
+    wishlist: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'tblproducts'
+    }],
     isActive: {
         type: Boolean,
         default: true

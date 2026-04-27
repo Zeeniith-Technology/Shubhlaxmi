@@ -3,10 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { SlidersHorizontal, ChevronDown, X, ChevronRight } from "lucide-react";
+import { SlidersHorizontal, ChevronDown, X, ChevronRight, Heart } from "lucide-react";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { useCurrency } from "../../../context/CurrencyContext";
+import { useWishlist } from "../../../context/WishlistContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -17,6 +18,7 @@ export default function CollectionPage() {
     const searchParams = useSearchParams();
     const slug = params.slug as string;
     const { formatPrice } = useCurrency();
+    const { toggleWishlist, isInWishlist } = useWishlist();
 
     // Default price state matching query parameters if present
     const maxPriceQuery = searchParams?.get('maxPrice');
@@ -59,11 +61,18 @@ export default function CollectionPage() {
                     setCategory(matchedCategory);
                 }
 
-                // Fetch products — filter by category if found
+                // Fetch products — filter by category, price, sort directly on backend
                 const productBody: any = {};
                 if (matchedCategory) {
                     productBody.categoryId = matchedCategory._id;
                 }
+                
+                if (isPriceFiltered) {
+                    productBody.minPrice = priceRange[0];
+                    productBody.maxPrice = priceRange[1];
+                }
+                
+                productBody.sort = sortBy;
 
                 const prodRes = await fetch(`${API_BASE}/public/products`, {
                     method: "POST",
@@ -75,10 +84,9 @@ export default function CollectionPage() {
                     const fetchedProducts = prodData.data;
                     setProducts(fetchedProducts);
 
-                    if (fetchedProducts.length > 0) {
+                    if (fetchedProducts.length > 0 && !isPriceFiltered) {
                         setAvailableMin(0);
                         setAvailableMax(100000);
-                        // Keeping initial range zero to max unless URL query parameter applies
                         if (!isUrlFiltered) {
                             setPriceRange([0, 100000]);
                         }
@@ -92,40 +100,10 @@ export default function CollectionPage() {
         };
 
         fetchData();
-    }, [slug]);
+    }, [slug, isPriceFiltered, sortBy]); 
 
-    // Sort + filter logic
-    const displayProducts = useMemo(() => {
-        let filtered = [...products];
-
-        // Price filter
-        if (isPriceFiltered) {
-            filtered = filtered.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
-        }
-
-        // Sort
-        switch (sortBy) {
-            case "price-asc":
-                filtered.sort((a, b) => a.price - b.price);
-                break;
-            case "price-desc":
-                filtered.sort((a, b) => b.price - a.price);
-                break;
-            case "newest":
-                filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                break;
-            case "title-asc":
-                filtered.sort((a, b) => a.title.localeCompare(b.title));
-                break;
-            case "title-desc":
-                filtered.sort((a, b) => b.title.localeCompare(a.title));
-                break;
-            default: // "featured" - keep original order
-                break;
-        }
-
-        return filtered;
-    }, [products, sortBy, isPriceFiltered, priceRange]);
+    // Because backend does it now, displayProducts is exactly products.
+    const displayProducts = products;
 
     const applyPriceFilter = () => {
         setIsPriceFiltered(true);
@@ -168,21 +146,7 @@ export default function CollectionPage() {
                 </h1>
             </div>
 
-            {/* Stacked Promotional Banners (Matching Amrut Design) */}
-            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-10 flex flex-col gap-2">
-                <div className="w-full bg-[#fdf2f2] text-[#1e1e1e] text-[13px] sm:text-sm font-medium tracking-widest uppercase text-center py-3">
-                    BUY ANY 1 PATOLA PRINTS FOR ₹1500
-                </div>
-                <div className="w-full bg-[#fcf5f5] text-[#1e1e1e] text-[13px] sm:text-sm font-medium tracking-widest uppercase text-center py-3">
-                    BUY ANY 2 PATOLA PRINTS FOR ₹2500
-                </div>
-                <div className="w-full bg-[#fdf2f2] text-[#1e1e1e] text-[13px] sm:text-sm font-medium tracking-widest uppercase text-center py-3">
-                    BUY ANY 3 PATOLA PRINTS FOR ₹3000
-                </div>
-                <div className="w-full bg-[#eef6fc] text-[#1e1e1e] text-[13px] sm:text-sm font-medium tracking-widest uppercase text-center py-3">
-                    ₹1000 SAREES
-                </div>
-            </div>
+
 
             {/* Filter + Sort Bar */}
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-8">
@@ -318,30 +282,46 @@ export default function CollectionPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6 lg:gap-x-8">
-                        {displayProducts.map((product: any) => (
-                            <Link
-                                key={product._id}
-                                href={`/product/${product.slug}`}
-                                className="group flex flex-col cursor-pointer"
-                            >
-                                {/* Product Image */}
-                                <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 mb-4">
-                                    <img
-                                        src={product.images?.[0]?.url || 'https://placehold.co/400x530/f3f4f6/a1a1aa?text=No+Image'}
-                                        alt={product.title}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                    />
-                                    {product.compareAtPrice > product.price && (
-                                        <span className="absolute top-3 left-3 bg-[var(--brand-pink)] text-white text-[10px] sm:text-xs font-bold px-2 py-1 uppercase tracking-widest shadow-sm">
-                                            Sale
-                                        </span>
-                                    )}
-                                </div>
+                        {displayProducts.map((product: any) => {
+                            const isWishlisted = isInWishlist(product._id);
+                            return (
+                                <Link
+                                    key={product._id}
+                                    href={`/product/${product.slug}`}
+                                    className="group flex flex-col cursor-pointer"
+                                >
+                                    {/* Product Image */}
+                                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 mb-4">
+                                        <img
+                                            src={product.images?.[0]?.url || 'https://placehold.co/400x530/f3f4f6/a1a1aa?text=No+Image'}
+                                            alt={product.title}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                        />
+                                        {product.compareAtPrice > product.price && (
+                                            <span className="absolute top-3 left-3 bg-[var(--brand-pink)] text-white text-[10px] sm:text-xs font-bold px-2 py-1 uppercase tracking-widest shadow-sm">
+                                                Sale
+                                            </span>
+                                        )}
+                                        {/* Wishlist Toggle Button */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                toggleWishlist(product._id);
+                                            }}
+                                            className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-white/70 backdrop-blur-md rounded-full shadow-sm hover:scale-110 transition-transform"
+                                        >
+                                            <Heart 
+                                                size={16} 
+                                                className={`transition-colors ${isWishlisted ? "fill-[#ea2083] stroke-[#ea2083]" : "stroke-gray-600"}`} 
+                                            />
+                                        </button>
+                                    </div>
 
-                                {/* Product Title */}
-                                <h3 className="text-[12px] sm:text-[13px] text-gray-800 text-center font-[var(--font-body)] group-hover:text-[#ea2083] transition-colors leading-[1.6] px-1 mb-2">
-                                    {product.title}
-                                </h3>
+                                    {/* Product Title */}
+                                    <h3 className="text-[12px] sm:text-[13px] text-gray-800 text-center font-[var(--font-body)] group-hover:text-[#ea2083] transition-colors leading-[1.6] px-1 mb-2">
+                                        {product.title}
+                                    </h3>
 
                                 {/* Product Price */}
                                 <div className="mt-auto text-center flex flex-wrap items-center justify-center gap-2">
@@ -358,7 +338,8 @@ export default function CollectionPage() {
                                     )}
                                 </div>
                             </Link>
-                        ))}
+                        );
+                        })}
                     </div>
                 )}
             </div>

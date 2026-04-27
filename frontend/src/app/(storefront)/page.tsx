@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Phone, Shirt, ShoppingBag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Phone, Shirt, ShoppingBag, Heart } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { useWishlist } from "../context/WishlistContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -91,18 +92,29 @@ function HeroCarousel({ banners }: { banners: any[] }) {
                         <ChevronRight size={20} />
                     </button>
 
-                    {/* Dots */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                    {/* Progress Bars */}
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2 w-full max-w-[300px] px-4">
+                        <style dangerouslySetInnerHTML={{__html: `
+                            @keyframes progressFill {
+                                0% { width: 0%; }
+                                100% { width: 100%; }
+                            }
+                        `}} />
                         {banners.map((_: any, idx: number) => (
                             <button
                                 key={idx}
                                 onClick={() => setCurrent(idx)}
-                                className={`w-2.5 h-2.5 rounded-full transition-all ${idx === current
-                                    ? "bg-[var(--brand-pink)] w-6"
-                                    : "bg-white/70 hover:bg-white"
-                                    }`}
+                                className="relative h-1.5 flex-1 bg-white/40 rounded-full overflow-hidden transition-all hover:bg-white/60"
                                 aria-label={`Slide ${idx + 1}`}
-                            />
+                            >
+                                <div
+                                    className="absolute top-0 left-0 h-full bg-white"
+                                    style={{
+                                        width: idx < current ? "100%" : "0%",
+                                        animation: idx === current && isAutoPlaying ? "progressFill 4s linear forwards" : "none"
+                                    }}
+                                />
+                            </button>
                         ))}
                     </div>
                 </>
@@ -209,6 +221,8 @@ function ProductCard({ product }: { product: any }) {
     const hoverImage = product.images?.[1]?.url || mainImage;
     const { addToCart } = useCart();
     const { formatPrice } = useCurrency();
+    const { toggleWishlist, isInWishlist } = useWishlist();
+    const isWishlisted = isInWishlist(product._id);
 
     return (
         <Link
@@ -228,6 +242,21 @@ function ProductCard({ product }: { product: any }) {
                     alt={product.title}
                     className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 opacity-0 group-hover:opacity-100"
                 />
+
+                {/* Wishlist Toggle Button */}
+                <button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleWishlist(product._id);
+                    }}
+                    className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-white/70 backdrop-blur-md rounded-full shadow-sm hover:scale-110 transition-transform"
+                >
+                    <Heart 
+                        size={16} 
+                        className={`transition-colors ${isWishlisted ? "fill-[#ea2083] stroke-[#ea2083]" : "stroke-gray-600"}`} 
+                    />
+                </button>
 
                 {/* Add to Cart Overlay */}
                 <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out">
@@ -499,37 +528,44 @@ export default function HomePage() {
         );
     }
 
-    // Find the Mens section and filter categories that belong to it
-    const mensSection = sections.find((s: any) => s.name?.toLowerCase().includes('men') && !s.name?.toLowerCase().includes('women'));
-    const mensCategories = mensSection
-        ? categories.filter((c: any) => c.sectionId === mensSection._id || String(c.sectionId) === String(mensSection._id))
-        : [];
+    // Dynamically build a list of sections that have at least one category,
+    // sorted by the section's order field (or by name as fallback).
+    const sectionsWithCategories = sections
+        .map((s: any) => ({
+            section: s,
+            cats: categories.filter(
+                (c: any) => String(c.sectionId) === String(s._id)
+            ),
+        }))
+        .filter(({ cats }) => cats.length > 0)
+        .sort((a, b) => (a.section.order ?? 0) - (b.section.order ?? 0));
 
-    // Find the Womens section and filter categories that belong to it
-    const womensSection = sections.find((s: any) => s.name?.toLowerCase().includes('women'));
-    const womensCategories = womensSection
-        ? categories.filter((c: any) => c.sectionId === womensSection._id || String(c.sectionId) === String(womensSection._id))
-        : [];
+    // If no section-category mapping exists, fall back to showing all categories
+    const fallbackCategories = sectionsWithCategories.length === 0 ? categories : [];
 
     return (
         <>
             <HeroCarousel banners={banners} />
-            {/* Men's Category Grid */}
-            <CategoryGrid
-                categories={mensCategories.length > 0 ? mensCategories : categories}
-                title={mensCategories.length > 0 ? "Shop Men's Ethnic Wear" : "Shop By Category"}
-            />
 
-            {/* Video Shopping CTA */}
-            <VideoShoppingCTA />
-
-            {/* Women's Category Grid */}
-            {womensCategories.length > 0 && (
-                <CategoryGrid
-                    categories={womensCategories}
-                    title="Shop Women's Ethnic Wear"
-                />
+            {/* Fallback: show all categories if no sections are configured */}
+            {fallbackCategories.length > 0 && (
+                <CategoryGrid categories={fallbackCategories} title="Shop By Category" />
             )}
+
+            {/* Dynamic Section Category Grids — one grid per section */}
+            {sectionsWithCategories.map(({ section, cats }, idx) => (
+                <div key={section._id}>
+                    <CategoryGrid
+                        categories={cats}
+                        title={`Shop ${section.name}`}
+                    />
+                    {/* Insert Video Shopping CTA after the first section */}
+                    {idx === 0 && <VideoShoppingCTA />}
+                </div>
+            ))}
+
+            {/* If there were no sections at all, still show the CTA */}
+            {sectionsWithCategories.length === 0 && <VideoShoppingCTA />}
 
             <StyleShowcase />
 

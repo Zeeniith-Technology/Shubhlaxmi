@@ -19,9 +19,9 @@ export default function Footer() {
 
                     {/* Brand Column (Always visible, first on all screens) */}
                     <div className="mb-8 sm:mb-0">
-                        <h2 className="text-2xl font-[var(--font-heading)] tracking-widest mb-4">
-                            Shubhlaxmi
-                        </h2>
+                        <Link href="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-block mb-5">
+                            <img src="/Logo.png" alt="Shubhlaxmi" className="h-14 w-auto object-contain bg-white px-4 py-2 rounded-lg shadow-sm" />
+                        </Link>
                         <p className="text-[13px] text-white/90 leading-relaxed font-[var(--font-body)] pr-4 sm:pr-0">
                             Your one-stop destination for designer ethnic wear. We bring you the finest collection of sarees, lehengas, salwar kameez and more.
                         </p>

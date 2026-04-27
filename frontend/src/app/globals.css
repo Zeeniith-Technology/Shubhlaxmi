@@ -6,8 +6,12 @@
   --bg-white: #ffffff;
   --text-primary: #1a1a1a;
   --text-muted: #6b7280;
-  --font-heading: var(--font-tenor), "Tenor Sans", serif;
-  --font-body: var(--font-outfit), "Outfit", sans-serif;
+  --font-heading: var(--font-marcellus), 'Optima', 'Candara', 'Noto Sans', sans-serif;
+  --font-body: var(--font-marcellus), 'Optima', 'Candara', 'Noto Sans', sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
 }
 
 @theme inline {

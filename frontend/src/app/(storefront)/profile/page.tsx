@@ -1,12 +1,13 @@
 "use client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User, MapPin, Package, LogOut } from "lucide-react";
-import PersonalInfo from "../../../components/profile/PersonalInfo";
-import AddressManager from "../../../components/profile/AddressManager";
+import PersonalInfo from "@/components/profile/PersonalInfo";
+import AddressManager from "@/components/profile/AddressManager";
+import OrderHistory from "@/components/profile/OrderHistory";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -143,10 +144,7 @@ export default function ProfilePage() {
                                 <AddressManager addresses={profile.addresses || []} refreshProfile={fetchProfile} />
                             )}
                             {activeTab === "orders" && (
-                                <div>
-                                    <h2 className="text-xl font-[var(--font-heading)] font-semibold mb-6">Order History</h2>
-                                    <p className="text-gray-500 italic">Order history integration coming soon...</p>
-                                </div>
+                                <OrderHistory />
                             )}
                         </div>
                     </div>

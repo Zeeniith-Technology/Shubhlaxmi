@@ -54,6 +54,28 @@ class AppointmentController {
         }
     }
 
+    // 2.5 List Booked Slots
+    async listBookedSlots(req, res, next) {
+        try {
+            const { date } = req.body;
+            if (!date) {
+                req.api_error = { statusCode: 400, message: "Date is required" };
+                return next();
+            }
+            await db.checkTableExists('tblappointments', appointmentSchema);
+            const data = await db.fetchdata({ date, status: { $ne: "Cancelled" } }, 'tblappointments', appointmentSchema);
+            
+            // Map to just an array of booked time slots
+            const bookedSlots = data.map(app => app.timeSlot);
+            req.api_data = bookedSlots;
+            next();
+        } catch (error) {
+            console.error("List Booked Slots error:", error);
+            req.api_error = { statusCode: 500, message: "Internal server error", stack: error.stack };
+            next();
+        }
+    }
+
     // 3. Update Appointment
     async updateappointment(req, res, next) {
         try {

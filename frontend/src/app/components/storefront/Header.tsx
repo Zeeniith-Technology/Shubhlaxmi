@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, User, ShoppingBag, Menu, X, ChevronDown, Check } from "lucide-react";
+import { Search, User, ShoppingBag, Menu, X, ChevronDown, Check, Heart } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { useCurrency, CurrencyCode } from "../../context/CurrencyContext";
+import { useWishlist } from "../../context/WishlistContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -29,6 +30,7 @@ export default function Header() {
     const { cartCount, setIsCartOpen } = useCart();
     const { user, setIsLoginOpen } = useAuth();
     const { currency, setCurrency, isLoading } = useCurrency();
+    const { wishlistIds } = useWishlist();
     const router = useRouter();
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -96,12 +98,8 @@ export default function Header() {
                     </div>
 
                     {/* Center: Logo */}
-                    <Link href="/" className="flex-shrink-0 mx-4 text-center flex-1 flex justify-center flex-col items-center">
-                        <h1 className="text-3xl sm:text-4xl font-[var(--font-heading)] text-[#ea2083] tracking-widest font-normal drop-shadow-sm lowercase flex items-center gap-1">
-                            <img src="/floral-swirl.png" className="w-6 h-6 object-contain hidden lg:inline-block opacity-70" alt="" onError={e => e.currentTarget.style.display = 'none'} />
-                            shubhlaxmi
-                        </h1>
-                        <span className="text-[#ea2083] text-[9px] uppercase tracking-widest font-bold hidden sm:block">the fashion icon</span>
+                    <Link href="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex-shrink-0 mx-4 text-center flex-1 flex justify-center flex-col items-center">
+                        <img src="/Logo.png" alt="Shubhlaxmi" className="h-10 sm:h-14 lg:h-16 w-auto object-contain" />
                     </Link>
 
                     {/* Right: Icons */}
@@ -184,6 +182,18 @@ export default function Header() {
                                 <User size={20} />
                             </button>
                         )}
+                        <Link
+                            href="/profile/wishlist"
+                            className="relative text-[var(--text-primary)] hover:text-[var(--brand-pink)] transition-colors"
+                            aria-label="Wishlist"
+                        >
+                            <Heart size={20} />
+                            {wishlistIds.length > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 bg-[var(--brand-pink)] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                                    {wishlistIds.length}
+                                </span>
+                            )}
+                        </Link>
                         <button
                             onClick={() => setIsCartOpen(true)}
                             className="relative text-[var(--text-primary)] hover:text-[var(--brand-pink)] transition-colors"
@@ -228,7 +238,7 @@ export default function Header() {
                     const isSalwarMegaMenu = cat.name.toLowerCase().includes('salwar');
                     const isMegaMenu = isSareeMegaMenu || isSalwarMegaMenu;
 
-                    const subCategories = categories.filter((sub: any) => sub.parentCategory === cat._id);
+                    const subCategories = categories.filter((sub: any) => sub.parentCategoryId === cat._id);
                     const hasSubCategories = subCategories.length > 0;
 
                     return (
@@ -263,7 +273,7 @@ export default function Header() {
                                         See All {cat.name}
                                     </Link>
                                     {categories
-                                        .filter((sub: any) => sub.parentCategory === cat._id)
+                                        .filter((sub: any) => sub.parentCategoryId === cat._id)
                                         .map((sub) => (
                                             <Link
                                                 key={sub._id}
@@ -490,7 +500,7 @@ export default function Header() {
 
                         {/* Top Categories from API mapped with accordions */}
                         {topCategories.map((cat) => {
-                            const subCategories = categories.filter((sub: any) => sub.parentCategory === cat._id);
+                            const subCategories = categories.filter((sub: any) => sub.parentCategoryId === cat._id);
                             const hasSubCategories = subCategories.length > 0;
                             const isMegaMenu = cat.name.toLowerCase() === 'saree' || cat.name.toLowerCase() === 'sarees' || cat.name.toLowerCase().includes('salwar');
                             

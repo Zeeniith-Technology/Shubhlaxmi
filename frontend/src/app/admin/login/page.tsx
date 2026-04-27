@@ -43,7 +43,10 @@ export default function AdminLoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-                <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
+                <div className="flex justify-center mb-6">
+                    <img src="/Logo.png" alt="Shubhlaxmi" className="h-14 w-auto object-contain" />
+                </div>
+                <h1 className="text-lg font-bold text-center mb-6 text-gray-600 uppercase tracking-widest">
                     Admin Secure Login
                 </h1>
 
