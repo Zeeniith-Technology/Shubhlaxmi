@@ -1,5 +1,6 @@
 import db from '../method.js';
 import productSchema from '../schema/product.js';
+import discountSchema from '../schema/discount.js';
 import { cloudinary, deleteImage } from '../config/cloudinary.js';
 
 class ProductController {
@@ -14,6 +15,18 @@ class ProductController {
 
             if (!title || !price || !sectionId || !categoryId) {
                 req.api_error = { statusCode: 400, message: "Title, price, sectionId, and categoryId are required." };
+                return next();
+            }
+
+            // Numeric validation
+            const numPrice = Number(price);
+            const numStock = stock !== undefined ? Number(stock) : 0;
+            if (isNaN(numPrice) || numPrice <= 0) {
+                req.api_error = { statusCode: 400, message: "Price must be a positive number" };
+                return next();
+            }
+            if (isNaN(numStock) || numStock < 0) {
+                req.api_error = { statusCode: 400, message: "Stock cannot be negative" };
                 return next();
             }
 
@@ -48,10 +61,10 @@ class ProductController {
                 title,
                 slug,
                 description: description || '',
-                price: Number(price),
+                price: numPrice,
                 compareAtPrice: compareAtPrice ? Number(compareAtPrice) : null,
                 sku: sku || '',
-                stock: stock ? Number(stock) : 0,
+                stock: numStock,
                 sectionId,
                 categoryId,
                 images,
@@ -75,6 +88,99 @@ class ProductController {
             }
             next();
         }
+    }
+
+    // Helper to dynamically apply active discounts
+    async applyDiscounts(products) {
+        if (!products || products.length === 0) return products;
+
+        const now = new Date();
+        // Fetch all active discounts that are currently valid
+        const activeDiscounts = await db.fetchdata({
+            isActive: true,
+            startDate: { $lte: now },
+            endDate: { $gte: now }
+        }, 'tbldiscounts', discountSchema);
+
+        if (activeDiscounts.length === 0) return products;
+
+        return products.map(product => {
+            let maxDiscountAmount = 0;
+            let appliedDiscount = null;
+            const prodPrice = Number(product.price) || 0;
+
+            activeDiscounts.forEach(discount => {
+                let isApplicable = false;
+
+                if (discount.targetType === 'All') {
+                    isApplicable = true;
+                } else if (discount.targetType === 'Category' && product.categoryId) {
+                    const catId = typeof product.categoryId === 'object' ? product.categoryId._id : product.categoryId;
+                    if (discount.targetIds.map(id => id.toString()).includes(catId?.toString())) isApplicable = true;
+                } else if (discount.targetType === 'Section' && product.sectionId) {
+                    const secId = typeof product.sectionId === 'object' ? product.sectionId._id : product.sectionId;
+                    if (discount.targetIds.map(id => id.toString()).includes(secId?.toString())) isApplicable = true;
+                } else if (discount.targetType === 'Product') {
+                    if (discount.targetIds.map(id => id.toString()).includes(product._id?.toString())) isApplicable = true;
+                }
+
+                if (isApplicable) {
+                    let discountAmount = 0;
+                    if (discount.discountType === 'Percentage') {
+                        discountAmount = (prodPrice * discount.value) / 100;
+                    } else if (discount.discountType === 'Flat') {
+                        discountAmount = discount.value;
+                    }
+
+                    if (discountAmount > maxDiscountAmount) {
+                        maxDiscountAmount = discountAmount;
+                        appliedDiscount = discount;
+                    }
+                }
+            });
+
+            if (maxDiscountAmount > 0 && appliedDiscount) {
+                const newPrice = Math.max(0, prodPrice - maxDiscountAmount);
+                // If compareAtPrice doesn't exist or is lower, use the original price
+                const compareAt = (product.compareAtPrice && Number(product.compareAtPrice) > prodPrice) ? Number(product.compareAtPrice) : prodPrice;
+                
+                // Apply discount to variants if they exist
+                let updatedVariants = product.variants;
+                if (product.variants && Array.isArray(product.variants)) {
+                    updatedVariants = product.variants.map(v => {
+                        const vPrice = Number(v.price) || 0;
+                        if (vPrice <= 0) return v;
+
+                        let vDiscountAmount = 0;
+                        if (appliedDiscount.discountType === 'Percentage') {
+                            vDiscountAmount = (vPrice * appliedDiscount.value) / 100;
+                        } else if (appliedDiscount.discountType === 'Flat') {
+                            vDiscountAmount = appliedDiscount.value;
+                        }
+
+                        const newVPrice = Math.max(0, vPrice - vDiscountAmount);
+                        const vCompareAt = (v.compareAtPrice && Number(v.compareAtPrice) > vPrice) ? Number(v.compareAtPrice) : vPrice;
+
+                        return {
+                            ...(v._doc || v),
+                            price: newVPrice,
+                            compareAtPrice: vCompareAt,
+                            originalPrice: vPrice
+                        };
+                    });
+                }
+
+                return {
+                    ...(product._doc || product),
+                    price: newPrice,
+                    compareAtPrice: compareAt,
+                    originalPrice: prodPrice,
+                    variants: updatedVariants
+                };
+            }
+
+            return product;
+        });
     }
 
     // 2. List Products
@@ -145,8 +251,12 @@ class ProductController {
             ];
 
             const data = await db.fetchdata(filter, 'tblproducts', productSchema, pipeline, true);
+            
+            // Re-instantiate controller if 'this' is unbound (Express router behavior)
+            const controller = this && this.applyDiscounts ? this : new ProductController();
+            const discountedData = await controller.applyDiscounts(data);
 
-            req.api_data = data;
+            req.api_data = discountedData;
             next();
 
         } catch (error) {
@@ -243,7 +353,12 @@ class ProductController {
 
             // Fetch product first to delete images from Cloudinary
             const products = await db.fetchdata({ _id: id }, 'tblproducts', productSchema);
-            if (products.length > 0 && products[0].images) {
+            if (!products || products.length === 0) {
+                req.api_error = { statusCode: 404, message: "Product not found" };
+                return next();
+            }
+
+            if (products[0].images) {
                 for (const img of products[0].images) {
                     if (img.publicId) {
                         try {

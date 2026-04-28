@@ -6,6 +6,11 @@ class SectionController {
     // 1. Add Section
     async addsection(req, res, next) {
         try {
+            if (!req.body.name || !req.body.name.trim()) {
+                req.api_error = { statusCode: 400, message: "Section name is required" };
+                return next();
+            }
+
             if (req.body.name && !req.body.slug) {
                 req.body.slug = req.body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
             }
@@ -92,6 +97,14 @@ class SectionController {
             }
 
             await db.checkTableExists('tblsections', sectionSchema);
+
+            // 404 guard: ensure section actually exists before deleting
+            const existing = await db.fetchdata({ _id: id }, 'tblsections', sectionSchema);
+            if (!existing || existing.length === 0) {
+                req.api_error = { statusCode: 404, message: "Section not found" };
+                return next();
+            }
+
             const result = await db.executdata('tblsections', sectionSchema, 'd', { _id: id });
 
             req.api_data = result;

@@ -13,6 +13,7 @@ import BannerController from './controller/banner.js';
 import specialCollection from './controller/specialCollection.js';
 import { upload } from './config/cloudinary.js';
 import appointment from './controller/appointment.js';
+import discount from './controller/discount.js';
 import { getTrendingProducts, getTrendingSetting, updateTrendingSetting, getMarqueeSetting, updateMarqueeSetting } from './controller/homeSetting.js';
 import { getStoreSettings, updateStoreSettings } from './controller/storeSetting.js';
 
@@ -151,5 +152,14 @@ router.post('/storefront/trending-products', getTrendingProducts);
 // Global Store Settings (WhatsApp Checkout, etc)
 router.post('/public/store-settings', getStoreSettings);
 router.post('/admin/store-settings/update', auth, updateStoreSettings);
+
+// ==========================================
+// DISCOUNT APIs
+// ==========================================
+router.post('/discount/add', auth, discount.addDiscount, responsedata);
+router.post('/discount/list', auth, discount.listDiscounts, responsedata);
+router.post('/discount/update', auth, discount.updateDiscount, responsedata);
+router.post('/discount/delete', auth, discount.deleteDiscount, responsedata);
+router.post('/discount/bulkdelete', auth, discount.bulkDeleteDiscounts, responsedata);
 
 export default router;

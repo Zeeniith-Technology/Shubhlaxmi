@@ -7,6 +7,11 @@ class CategoryController {
     // 1. Add Category
     async addcategory(req, res, next) {
         try {
+            if (!req.body.name || !req.body.name.trim()) {
+                req.api_error = { statusCode: 400, message: "Category name is required" };
+                return next();
+            }
+
             if (req.body.name && !req.body.slug) {
                 req.body.slug = req.body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
             }
@@ -122,11 +127,14 @@ class CategoryController {
 
             // Determine if the category had an image, if so delete from Cloudinary
             const existingCategoryArray = await db.fetchdata({ _id: id }, 'tblcategories', categorySchema);
-            if (existingCategoryArray && existingCategoryArray.length > 0) {
-                const existingCat = existingCategoryArray[0];
-                if (existingCat.image && existingCat.image.publicId) {
-                    try { await deleteImage(existingCat.image.publicId); } catch (e) { /* ignore */ }
-                }
+            if (!existingCategoryArray || existingCategoryArray.length === 0) {
+                req.api_error = { statusCode: 404, message: "Category not found" };
+                return next();
+            }
+
+            const existingCat = existingCategoryArray[0];
+            if (existingCat.image && existingCat.image.publicId) {
+                try { await deleteImage(existingCat.image.publicId); } catch (e) { /* ignore */ }
             }
 
             const result = await db.executdata('tblcategories', categorySchema, 'd', { _id: id });
