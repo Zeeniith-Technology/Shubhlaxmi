@@ -116,11 +116,11 @@ export default function Header() {
                     {/* Left: Mobile Menu & Desktop Search */}
                     <div className="flex items-center gap-4 flex-1">
                         <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="lg:hidden text-[var(--text-primary)] p-2 -ml-2"
-                            aria-label="Toggle menu"
+                            onClick={() => setMobileMenuOpen(true)}
+                            className="lg:hidden text-[var(--text-primary)] p-2 -ml-2 hover:text-[var(--brand-pink)]"
+                            aria-label="Open menu"
                         >
-                            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                            <Menu size={24} />
                         </button>
                         <button
                             onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -534,13 +534,22 @@ export default function Header() {
 
             {/* Mobile Menu Drawer Overlay */}
             <div 
-                className={`lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} 
+                className={`lg:hidden fixed inset-0 bg-black/60 z-[90] transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} 
                 onClick={() => setMobileMenuOpen(false)}
-                style={{ top: '64px' }} // Start below header
             />
 
             {/* Mobile Menu Drawer */}
-            <div className={`lg:hidden bg-white border-t border-gray-100 absolute top-full left-0 w-full md:w-[400px] shadow-2xl z-50 h-[calc(100vh-64px)] overflow-y-auto transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className={`lg:hidden fixed top-0 left-0 h-[100dvh] w-[85vw] max-w-[400px] bg-white shadow-2xl z-[100] flex flex-col transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                {/* Drawer Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
+                    <img src="/Logo.png" alt="Shubhlaxmi" className="h-8 sm:h-10 w-auto object-contain" />
+                    <button onClick={() => setMobileMenuOpen(false)} className="p-2 -mr-2 text-gray-400 hover:text-[var(--brand-pink)] transition-colors rounded-full hover:bg-gray-50">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Drawer Scrollable Content */}
+                <div className="flex-1 overflow-y-auto">
                     {/* Top action bar in mobile drawer: Currency Selector */}
                     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                         <div className="relative">
@@ -578,9 +587,6 @@ export default function Header() {
                                 </div>
                             )}
                         </div>
-                        <button onClick={() => setMobileMenuOpen(false)} className="text-gray-400 hover:text-gray-800 p-1">
-                            <X size={20} />
-                        </button>
                     </div>
 
                     {/* Navigation Menu Links */}
@@ -672,6 +678,7 @@ export default function Header() {
                         </Link>
                     </div>
                 </div>
+            </div>
         </header>
     );
 }
