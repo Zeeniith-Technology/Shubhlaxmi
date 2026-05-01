@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, User, ShoppingBag, Menu, X, ChevronDown, Check, Heart } from "lucide-react";
@@ -27,11 +27,44 @@ export default function Header() {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [categorySearch, setCategorySearch] = useState("");
     const { cartCount, setIsCartOpen } = useCart();
     const { user, setIsLoginOpen } = useAuth();
     const { currency, setCurrency, isLoading } = useCurrency();
     const { wishlistIds } = useWishlist();
     const router = useRouter();
+    const headerRef = useRef<HTMLElement>(null);
+    const [headerHeight, setHeaderHeight] = useState(96);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const openMegaMenu = () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        setActiveDropdown('new-arrivals');
+    };
+
+    const scheduleMegaMenuClose = () => {
+        closeTimerRef.current = setTimeout(() => setActiveDropdown(null), 120);
+    };
+
+    const cancelMegaMenuClose = () => {
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+
+    useEffect(() => {
+        const updateHeight = () => {
+            if (headerRef.current) {
+                // Use .bottom (not .height) so announcement bar above the header is included
+                setHeaderHeight(headerRef.current.getBoundingClientRect().bottom);
+            }
+        };
+        updateHeight();
+        window.addEventListener('resize', updateHeight);
+        window.addEventListener('scroll', updateHeight, { passive: true });
+        return () => {
+            window.removeEventListener('resize', updateHeight);
+            window.removeEventListener('scroll', updateHeight);
+        };
+    }, []);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -72,6 +105,7 @@ export default function Header() {
 
     return (
         <header
+            ref={headerRef}
             className={`sticky top-0 z-40 bg-white transition-shadow duration-300 ${scrolled ? "shadow-md" : ""
                 }`}
         >
@@ -212,26 +246,100 @@ export default function Header() {
 
             {/* Bottom Row: Navigation (Desktop only) */}
             <nav className="hidden lg:flex items-center justify-center gap-6 py-2 pb-4">
-                {/* New Arrivals Dropdown */}
+                {/* New Arrivals — Animated Horizontal Scroll Mega Menu */}
                 <div
                     className="relative group"
-                    onMouseEnter={() => setActiveDropdown('new-arrivals')}
-                    onMouseLeave={() => setActiveDropdown(null)}
+                    onMouseEnter={openMegaMenu}
+                    onMouseLeave={scheduleMegaMenuClose}
                 >
                     <button className="flex items-center gap-1 text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide focus:outline-none">
                         New Arrivals <ChevronDown size={12} className="transition-transform group-hover:rotate-180 opacity-50" />
                     </button>
 
-                    {activeDropdown === 'new-arrivals' && (
-                        <div className="absolute top-full left-0 bg-white shadow-xl rounded-b-lg border border-gray-100 py-4 px-6 min-w-[260px] z-50 transition-all duration-300">
-                            <Link href="/collections/latest-salwar-kameez" className="block py-2 text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Latest Salwar Kameez Designs</Link>
-                            <Link href="/collections/latest-sarees" className="block py-2 text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Latest Sarees Design</Link>
-                            <Link href="/collections/latest-lehengas" className="block py-2 text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Latest Lehengas</Link>
-                            <Link href="/collections/latest-gowns" className="block py-2 text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Latest Gowns</Link>
-                            <Link href="/collections/latest-kurtis" className="block py-2 text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Latest Kurtis</Link>
-                            <Link href="/collections/latest-western" className="block py-2 text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Latest Western Outfit</Link>
+                    <div
+                        className={`fixed left-0 w-screen bg-white border-t border-gray-100 z-50 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] transition-all duration-300 ease-out origin-top ${
+                            activeDropdown === 'new-arrivals'
+                                ? 'opacity-100 translate-y-0 pointer-events-auto'
+                                : 'opacity-0 -translate-y-3 pointer-events-none'
+                        }`}
+                        style={{ top: headerHeight }}
+                        onMouseEnter={cancelMegaMenuClose}
+                        onMouseLeave={scheduleMegaMenuClose}
+                    >
+                        <div className="max-w-[1400px] mx-auto px-8 py-6">
+                            {/* Header row */}
+                            <div className="flex items-center justify-between mb-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-1 h-5 bg-[var(--brand-pink)] rounded-full" />
+                                    <span className="text-[11px] font-bold tracking-[0.25em] text-gray-500 uppercase">Shop by Category</span>
+                                </div>
+                                <Link
+                                    href="/categories"
+                                    onClick={() => setActiveDropdown(null)}
+                                    className="text-[12px] text-[var(--brand-pink)] font-semibold tracking-wide flex items-center gap-1 group/link hover:underline"
+                                >
+                                    View All
+                                    <span className="inline-block transition-transform group-hover/link:translate-x-1">→</span>
+                                </Link>
+                            </div>
+
+                            {/* Horizontal scroll row */}
+                            <div
+                                className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                            >
+                                {topCategories.map((cat, i) => (
+                                    <Link
+                                        key={cat._id}
+                                        href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                        className="group/cat flex-shrink-0 flex flex-col items-center gap-2.5 text-center"
+                                        style={{
+                                            animationDelay: `${i * 40}ms`,
+                                            animation: activeDropdown === 'new-arrivals' ? 'fadeSlideUp 0.35s ease forwards' : 'none',
+                                            opacity: activeDropdown === 'new-arrivals' ? undefined : 0,
+                                        }}
+                                    >
+                                        {/* Card */}
+                                        <div className="w-[130px] aspect-[3/4] rounded-xl overflow-hidden bg-gray-100 relative shadow-sm group-hover/cat:shadow-lg transition-shadow duration-300">
+                                            {cat.image?.url ? (
+                                                <img
+                                                    src={cat.image.url}
+                                                    alt={cat.name}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/cat:scale-110"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-100">
+                                                    <span className="text-5xl font-bold text-[var(--brand-pink)] opacity-20 select-none">
+                                                        {cat.name.charAt(0).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {/* Bottom gradient overlay with "Shop Now" */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3">
+                                                <span className="text-white text-[10px] font-bold tracking-[0.15em] uppercase border border-white/60 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                                                    Shop Now
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Name */}
+                                        <span className="text-[12px] font-medium text-gray-700 group-hover/cat:text-[var(--brand-pink)] transition-colors duration-200 leading-tight max-w-[120px]">
+                                            {cat.name}
+                                        </span>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
-                    )}
+
+                        {/* Keyframe style */}
+                        <style>{`
+                            @keyframes fadeSlideUp {
+                                from { opacity: 0; transform: translateY(10px); }
+                                to   { opacity: 1; transform: translateY(0); }
+                            }
+                            .scrollbar-hide::-webkit-scrollbar { display: none; }
+                        `}</style>
+                    </div>
                 </div>
                 {topCategories.slice(0, 5).map((cat) => {
                     const isSareeMegaMenu = cat.name.toLowerCase() === 'saree' || cat.name.toLowerCase() === 'sarees';
@@ -391,19 +499,13 @@ export default function Header() {
                     href="/collections/budget-friendly"
                     className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
                 >
-                    Budget Friendly Sarees
+                    Budget Friendly
                 </Link>
                 <Link
                     href="/collections/1000-sarees"
                     className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
                 >
-                    ₹1000 SAREES
-                </Link>
-                <Link
-                    href="/collections/patan-patolas"
-                    className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
-                >
-                    Patan Patolas
+                    Under ₹1000
                 </Link>
             </nav>
 
@@ -430,9 +532,15 @@ export default function Header() {
                 </div>
             )}
 
+            {/* Mobile Menu Drawer Overlay */}
+            <div 
+                className={`lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} 
+                onClick={() => setMobileMenuOpen(false)}
+                style={{ top: '64px' }} // Start below header
+            />
+
             {/* Mobile Menu Drawer */}
-            {mobileMenuOpen && (
-                <div className="lg:hidden bg-white border-t border-gray-100 absolute top-full left-0 w-full shadow-2xl z-50 h-[calc(100vh-64px)] overflow-y-auto">
+            <div className={`lg:hidden bg-white border-t border-gray-100 absolute top-full left-0 w-full md:w-[400px] shadow-2xl z-50 h-[calc(100vh-64px)] overflow-y-auto transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                     {/* Top action bar in mobile drawer: Currency Selector */}
                     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                         <div className="relative">
@@ -477,29 +585,20 @@ export default function Header() {
 
                     {/* Navigation Menu Links */}
                     <div className="px-6 py-2 pb-24">
-                        {/* Static links */}
-                        <div className="border-b border-gray-100">
-                            <button
-                                onClick={() => setActiveDropdown(activeDropdown === 'mobile-new-arrivals' ? null : 'mobile-new-arrivals')}
-                                className="w-full flex items-center justify-between py-4 text-[17px] font-medium text-gray-800 font-[var(--font-heading)] tracking-wide"
-                            >
-                                New Arrivals
-                                <ChevronDown size={18} className={`text-gray-400 transition-transform ${activeDropdown === 'mobile-new-arrivals' ? 'rotate-180' : ''}`} />
-                            </button>
-                            {activeDropdown === 'mobile-new-arrivals' && (
-                                <div className="pb-4 pl-4 space-y-4">
-                                    <Link href="/collections/latest-salwar-kameez" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Latest Salwar Kameez Designs</Link>
-                                    <Link href="/collections/latest-sarees" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Latest Sarees Design</Link>
-                                    <Link href="/collections/latest-lehengas" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Latest Lehengas</Link>
-                                    <Link href="/collections/latest-gowns" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Latest Gowns</Link>
-                                    <Link href="/collections/latest-kurtis" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Latest Kurtis</Link>
-                                    <Link href="/collections/latest-western" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Latest Western Outfit</Link>
-                                </div>
-                            )}
+                        {/* Category Search Bar */}
+                        <div className="mt-4 mb-4 relative">
+                            <input
+                                type="text"
+                                placeholder="Search categories..."
+                                value={categorySearch}
+                                onChange={(e) => setCategorySearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[var(--brand-pink)] focus:border-[var(--brand-pink)] transition-all"
+                            />
+                            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                         </div>
 
                         {/* Top Categories from API mapped with accordions */}
-                        {topCategories.map((cat) => {
+                        {topCategories.filter(cat => cat.name.toLowerCase().includes(categorySearch.toLowerCase())).map((cat) => {
                             const subCategories = categories.filter((sub: any) => sub.parentCategoryId === cat._id);
                             const hasSubCategories = subCategories.length > 0;
                             const isMegaMenu = cat.name.toLowerCase() === 'saree' || cat.name.toLowerCase() === 'sarees' || cat.name.toLowerCase().includes('salwar');
@@ -511,7 +610,16 @@ export default function Header() {
                                             onClick={() => setActiveDropdown(activeDropdown === `mobile-${cat._id}` ? null : `mobile-${cat._id}`)}
                                             className="w-full flex items-center justify-between py-4 text-[17px] font-medium text-gray-800 font-[var(--font-heading)] tracking-wide"
                                         >
-                                            {cat.name}
+                                            <div className="flex items-center gap-4">
+                                                {cat.image?.url ? (
+                                                    <img src={cat.image.url} alt={cat.name} className="w-10 h-10 rounded-full object-cover shadow-sm border border-slate-200" />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center text-[var(--brand-pink)] font-bold shadow-sm border border-pink-200">
+                                                        {cat.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <span>{cat.name}</span>
+                                            </div>
                                             <ChevronDown size={18} className={`text-gray-400 transition-transform ${activeDropdown === `mobile-${cat._id}` ? 'rotate-180' : ''}`} />
                                         </button>
                                         
@@ -520,25 +628,11 @@ export default function Header() {
                                                 <Link href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block text-[15px] font-semibold text-[var(--brand-pink)] font-[var(--font-body)]">
                                                     View All {cat.name}
                                                 </Link>
-                                                {/* If Mega menu (Sarees), we render the hardcoded links for it like desktop, or just subcategories if available */}
-                                                {(cat.name.toLowerCase() === 'saree' || cat.name.toLowerCase() === 'sarees') ? (
-                                                    <>
-                                                        <Link href="/collections/sarees-embroidered" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Embroidered Sarees</Link>
-                                                        <Link href="/collections/sarees-designer" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Designer Sarees</Link>
-                                                        <Link href="/collections/sarees-ready-to-wear" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Ready to Wear Sarees</Link>
-                                                        <Link href="/collections/sarees-printed" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Printed Sarees</Link>
-                                                        <Link href="/collections/sarees-banarasi" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Banarasi Sarees</Link>
-                                                        <Link href="/collections/sarees-bridal" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Bridal Sarees</Link>
-                                                    </>
-                                                ) : cat.name.toLowerCase().includes('salwar') ? (
-                                                    <Link href="/collections/palazzo-suits" onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">Palazzo Suits</Link>
-                                                ) : (
-                                                    subCategories.map((sub: any) => (
-                                                        <Link key={sub._id} href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">
-                                                            {sub.name}
-                                                        </Link>
-                                                    ))
-                                                )}
+                                                {subCategories.map((sub: any) => (
+                                                    <Link key={sub._id} href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">
+                                                        {sub.name}
+                                                    </Link>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
@@ -550,9 +644,18 @@ export default function Header() {
                                     key={cat._id}
                                     href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide"
+                                    className="flex items-center gap-4 py-4 border-b border-gray-100"
                                 >
-                                    {cat.name}
+                                    {cat.image?.url ? (
+                                        <img src={cat.image.url} alt={cat.name} className="w-10 h-10 rounded-full object-cover shadow-sm border border-slate-200" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center text-[var(--brand-pink)] font-bold shadow-sm border border-pink-200">
+                                            {cat.name.charAt(0)}
+                                        </div>
+                                    )}
+                                    <span className="text-[17px] font-medium text-gray-800 font-[var(--font-heading)] tracking-wide">
+                                        {cat.name}
+                                    </span>
                                 </Link>
                             );
                         })}
@@ -562,17 +665,13 @@ export default function Header() {
                             Live Video Shopping
                         </Link>
                         <Link href="/collections/budget-friendly" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
-                            Budget Friendly Sarees
+                            Budget Friendly
                         </Link>
                         <Link href="/collections/1000-sarees" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
-                            ₹1000 SAREES
-                        </Link>
-                        <Link href="/collections/patan-patolas" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
-                            Patan Patolas
+                            Under ₹1000
                         </Link>
                     </div>
                 </div>
-            )}
         </header>
     );
 }

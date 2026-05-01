@@ -243,6 +243,15 @@ function ProductCard({ product }: { product: any }) {
                     className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 opacity-0 group-hover:opacity-100"
                 />
 
+                {/* SALE Badge */}
+                {product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price) && (
+                    <div className="absolute top-3 left-3 z-10">
+                        <span className="bg-[var(--brand-pink)] text-white text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded-sm shadow-sm">
+                            {Math.round(((Number(product.compareAtPrice) - Number(product.price)) / Number(product.compareAtPrice)) * 100)}% OFF
+                        </span>
+                    </div>
+                )}
+
                 {/* Wishlist Toggle Button */}
                 <button
                     onClick={(e) => {
@@ -276,14 +285,18 @@ function ProductCard({ product }: { product: any }) {
             <h3 className="text-sm font-[var(--font-body)] text-[var(--text-primary)] mb-1 leading-snug line-clamp-2 group-hover:text-[var(--brand-pink)] transition-colors">
                 {product.title}
             </h3>
-            <p className="text-sm font-semibold font-[var(--font-body)] text-[var(--text-primary)] leading-none mt-1">
-                {formatPrice(product.price || 0)}
-                {product.mrp && product.mrp > product.price && (
-                    <span className="text-xs text-gray-400 line-through ml-2 font-normal">
-                        {formatPrice(product.mrp)}
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {/* Discounted / current price */}
+                <span className={`text-sm font-semibold font-[var(--font-body)] leading-none ${product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price) ? 'text-[var(--brand-pink)]' : 'text-[var(--text-primary)]'}`}>
+                    {formatPrice(product.price || 0)}
+                </span>
+                {/* Original price strikethrough — use compareAtPrice */}
+                {product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price) && (
+                    <span className="text-xs text-gray-400 line-through font-normal">
+                        {formatPrice(product.compareAtPrice)}
                     </span>
                 )}
-            </p>
+            </div>
         </Link>
     );
 }

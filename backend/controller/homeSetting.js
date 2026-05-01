@@ -3,6 +3,7 @@ import categorySchema from "../schema/category.js";
 import sectionSchema from "../schema/section.js";
 import productSchema from "../schema/product.js";
 import mongoose from 'mongoose';
+import ProductController from './product.js';
 
 const HomeSetting = mongoose.models.tblhomesettings || mongoose.model('tblhomesettings', homeSettingSchema);
 const Category = mongoose.models.tblcategories || mongoose.model('tblcategories', categorySchema);
@@ -120,8 +121,12 @@ export async function getTrendingProducts(req, res, next) {
             }
         }
 
+        // Apply active discounts before returning (same as listproduct endpoint)
+        const controller = new ProductController();
+        const discountedProducts = await controller.applyDiscounts(products);
+
         // Format and return
-        return res.status(200).json({ status: true, message: "Success", data: products });
+        return res.status(200).json({ status: true, message: "Success", data: discountedProducts });
 
     } catch (error) {
         req.api_error = { statusCode: 500, message: error.message };

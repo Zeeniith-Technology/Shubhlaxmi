@@ -31,6 +31,16 @@ export default function CollectionPage() {
     const [sortBy, setSortBy] = useState<SortOption>("featured");
     const [filterOpen, setFilterOpen] = useState(false);
 
+    // Budget Friendly mode
+    const isBudgetFriendly = slug === "budget-friendly";
+    const [budgetSettings, setBudgetSettings] = useState<{ min: number; max: number } | null>(null);
+
+    // Special price-based slugs
+    const specialPriceSlugs: Record<string, { min: number; max: number; label: string }> = {
+        "1000-sarees": { min: 0, max: 1000, label: "Under \u20b91000" },
+    };
+    const isSpecialPrice = Object.keys(specialPriceSlugs).includes(slug);
+
     // Price filter (Slider)
     const [priceRange, setPriceRange] = useState<[number, number]>([0, urlMaxPrice]);
     const [availableMin, setAvailableMin] = useState(0);
@@ -44,6 +54,27 @@ export default function CollectionPage() {
         const fetchData = async () => {
             setLoading(true);
             try {
+                // If budget-friendly, first fetch the configured price range from store settings
+                let budgetMin = 0;
+                let budgetMax = 100000;
+                if (isBudgetFriendly) {
+                    try {
+                        const settingsRes = await fetch(`${API_BASE}/public/store-settings`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({})
+                        });
+                        const settingsData = await settingsRes.json();
+                        if (settingsData.status && settingsData.data) {
+                            budgetMin = settingsData.data.budgetFriendlyMinPrice ?? 0;
+                            budgetMax = settingsData.data.budgetFriendlyMaxPrice ?? 2000;
+                            setBudgetSettings({ min: budgetMin, max: budgetMax });
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch budget settings", e);
+                    }
+                }
+
                 // Fetch all categories to find the matching one
                 const catRes = await fetch(`${API_BASE}/public/categories`, {
                     method: "POST",
@@ -52,26 +83,64 @@ export default function CollectionPage() {
                 });
                 const catData = await catRes.json();
 
-                let matchedCategory = null;
+                let matchedCategory: any = null;
+                let matchedSection: any = null;
+
                 if (catData.success && catData.data) {
-                    matchedCategory = catData.data.find((c: any) =>
-                        c.name.toLowerCase().replace(/\s+/g, "-") === slug.toLowerCase() ||
-                        c.slug === slug.toLowerCase()
-                    );
-                    setCategory(matchedCategory);
+                    matchedCategory = catData.data.find((c: any) => {
+                        const nameSlug = c.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+                        const currentSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+                        return nameSlug === currentSlug || c.slug === slug.toLowerCase();
+                    });
+                    setCategory(matchedCategory || null);
                 }
 
-                // Fetch products — filter by category, price, sort directly on backend
+                // If no category found, try sections
+                if (!matchedCategory) {
+                    try {
+                        const secRes = await fetch(`${API_BASE}/public/sections`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({})
+                        });
+                        const secData = await secRes.json();
+                        if (secData.success && secData.data) {
+                            matchedSection = secData.data.find((s: any) => {
+                                const nameSlug = s.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+                                return nameSlug === slug.toLowerCase() || s.slug === slug.toLowerCase();
+                            });
+                        }
+                    } catch (e) { /* sections are optional */ }
+                }
+
+                // Fetch products — filter by category/section, price, sort directly on backend
                 const productBody: any = {};
                 if (matchedCategory) {
                     productBody.categoryId = matchedCategory._id;
+                } else if (matchedSection) {
+                    productBody.sectionId = matchedSection._id;
                 }
-                
-                if (isPriceFiltered) {
+
+                // For budget-friendly slug: always apply the configured price range
+                if (isBudgetFriendly) {
+                    productBody.minPrice = budgetMin;
+                    productBody.maxPrice = budgetMax;
+                } else if (isSpecialPrice) {
+                    productBody.minPrice = specialPriceSlugs[slug].min;
+                    productBody.maxPrice = specialPriceSlugs[slug].max;
+                } else if (isPriceFiltered) {
                     productBody.minPrice = priceRange[0];
                     productBody.maxPrice = priceRange[1];
                 }
-                
+
+                // GUARD: if nothing matched AND not a special slug AND not 'all', show empty
+                const isAllCollection = slug === "all";
+                if (!matchedCategory && !matchedSection && !isBudgetFriendly && !isSpecialPrice && !isAllCollection) {
+                    setProducts([]);
+                    setLoading(false);
+                    return;
+                }
+
                 productBody.sort = sortBy;
 
                 const prodRes = await fetch(`${API_BASE}/public/products`, {
@@ -84,7 +153,7 @@ export default function CollectionPage() {
                     const fetchedProducts = prodData.data;
                     setProducts(fetchedProducts);
 
-                    if (fetchedProducts.length > 0 && !isPriceFiltered) {
+                    if (fetchedProducts.length > 0 && !isPriceFiltered && !isBudgetFriendly) {
                         setAvailableMin(0);
                         setAvailableMax(100000);
                         if (!isUrlFiltered) {
@@ -100,10 +169,19 @@ export default function CollectionPage() {
         };
 
         fetchData();
-    }, [slug, isPriceFiltered, sortBy]); 
+    }, [slug, isPriceFiltered, sortBy, isBudgetFriendly]); 
 
-    // Because backend does it now, displayProducts is exactly products.
-    const displayProducts = products;
+    // Client-side safety filter: enforce price limits for special/budget slugs
+    const displayProducts = (() => {
+        if (isSpecialPrice) {
+            const { min, max } = specialPriceSlugs[slug];
+            return products.filter(p => Number(p.price) >= min && Number(p.price) <= max);
+        }
+        if (isBudgetFriendly && budgetSettings) {
+            return products.filter(p => Number(p.price) >= budgetSettings.min && Number(p.price) <= budgetSettings.max);
+        }
+        return products;
+    })();
 
     const applyPriceFilter = () => {
         setIsPriceFiltered(true);
@@ -118,7 +196,13 @@ export default function CollectionPage() {
 
     const hasActiveFilters = isPriceFiltered;
 
-    const displayTitle = category?.name || categoryName.replace(/(^|\s)\S/g, (t: string) => t.toUpperCase());
+    const displayTitle = isBudgetFriendly
+        ? "Budget Friendly"
+        : isSpecialPrice
+        ? specialPriceSlugs[slug].label
+        : slug === "all"
+        ? "All Products"
+        : category?.name || (category as any)?.name || categoryName.replace(/(^|\s)\S/g, (t: string) => t.toUpperCase());
 
     if (loading) {
         return (
@@ -298,8 +382,8 @@ export default function CollectionPage() {
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                         />
                                         {product.compareAtPrice > product.price && (
-                                            <span className="absolute top-3 left-3 bg-[var(--brand-pink)] text-white text-[10px] sm:text-xs font-bold px-2 py-1 uppercase tracking-widest shadow-sm">
-                                                Sale
+                                            <span className="absolute top-3 left-3 bg-[var(--brand-pink)] text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest shadow-sm">
+                                                {Math.round(((Number(product.compareAtPrice) - Number(product.price)) / Number(product.compareAtPrice)) * 100)}% OFF
                                             </span>
                                         )}
                                         {/* Wishlist Toggle Button */}
@@ -325,10 +409,9 @@ export default function CollectionPage() {
 
                                 {/* Product Price */}
                                 <div className="mt-auto text-center flex flex-wrap items-center justify-center gap-2">
-                                    {product.compareAtPrice > product.price && (
-                                        <span className="text-[12px] text-gray-500 font-[var(--font-body)]">from</span>
-                                    )}
-                                    <span className="font-medium text-[13px] sm:text-[14px] font-[var(--font-body)] text-gray-900">
+                                    <span className={`font-semibold text-[13px] sm:text-[14px] font-[var(--font-body)] ${
+                                        product.compareAtPrice > product.price ? 'text-[var(--brand-pink)]' : 'text-gray-900'
+                                    }`}>
                                         {formatPrice(product.price)}
                                     </span>
                                     {product.compareAtPrice > product.price && (

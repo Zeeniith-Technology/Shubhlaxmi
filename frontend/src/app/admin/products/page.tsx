@@ -16,6 +16,11 @@ export default function ProductsPage() {
     const [selected, setSelected] = useState<string[]>([]);
     const [availableAttributes, setAvailableAttributes] = useState<any[]>([]);
 
+    // Search and Filter State
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterSectionId, setFilterSectionId] = useState("All");
+    const [filterCategoryId, setFilterCategoryId] = useState("All");
+
     // Form fields
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -90,6 +95,19 @@ export default function ProductsPage() {
 
     const filteredCategories = sectionId ? categories.filter(c => c.sectionId === sectionId) : categories;
 
+    const filteredProducts = products.filter(p => {
+        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        const pSectionId = typeof p.sectionId === 'object' && p.sectionId ? p.sectionId._id : p.sectionId;
+        const matchesSection = filterSectionId === "All" || pSectionId === filterSectionId;
+        
+        const pCategoryId = typeof p.categoryId === 'object' && p.categoryId ? p.categoryId._id : p.categoryId;
+        const matchesCategory = filterCategoryId === "All" || pCategoryId === filterCategoryId;
+        
+        return matchesSearch && matchesSection && matchesCategory;
+    });
+
     const resetForm = () => {
         setTitle(""); setDescription(""); setPrice(""); setCompareAtPrice(""); setSku(""); setStock(""); setSectionId(""); setCategoryId(""); setIsFeatured(false); setImages(null); setEditId(null); setShowForm(false);
         setVariants([]); setAttributes([]); setCustomizations([]); setSeo({ metaTitle: "", metaDescription: "", keywords: "" });
@@ -146,7 +164,10 @@ export default function ProductsPage() {
     const handleEdit = (p: any) => {
         setEditId(p._id); setTitle(p.title); setDescription(p.description || ""); setPrice(String(p.price));
         setCompareAtPrice(p.compareAtPrice ? String(p.compareAtPrice) : ""); setSku(p.sku || "");
-        setStock(String(p.stock || 0)); setSectionId(p.sectionId || ""); setCategoryId(p.categoryId || "");
+        setStock(String(p.stock || 0));
+        // sectionId and categoryId may be populated objects or plain strings
+        setSectionId(typeof p.sectionId === "object" ? p.sectionId?._id || "" : p.sectionId || "");
+        setCategoryId(typeof p.categoryId === "object" ? p.categoryId?._id || "" : p.categoryId || "");
         setIsFeatured(p.isFeatured || false); setExistingImages(p.images || []); setImages(null);
 
         // Advanced Fields
@@ -217,8 +238,17 @@ export default function ProductsPage() {
 
     const toggleSelect = (id: string) => setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
     const toggleAll = () => setSelected(selected.length === products.length ? [] : products.map(p => p._id));
-    const getSectionName = (id: string) => sections.find(s => s._id === id)?.name || "—";
-    const getCategoryName = (id: string) => categories.find(c => c._id === id)?.name || "—";
+    // categoryId and sectionId may be populated objects (from $lookup) or plain ID strings
+    const getSectionName = (val: any) => {
+        if (!val) return "—";
+        if (typeof val === "object" && val.name) return val.name;
+        return sections.find(s => s._id === String(val))?.name || String(val).slice(-6);
+    };
+    const getCategoryName = (val: any) => {
+        if (!val) return "—";
+        if (typeof val === "object" && val.name) return val.name;
+        return categories.find(c => c._id === String(val))?.name || String(val).slice(-6);
+    };
 
     const inputStyle = { padding: "10px 14px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 14, outline: "none", color: "#1e293b", width: "100%", boxSizing: "border-box" as const };
     const selectStyle = { ...inputStyle, background: "#fff" };
@@ -427,6 +457,41 @@ export default function ProductsPage() {
                 </div>
             )}
 
+            {/* Toolbar: Search and Filters */}
+            {!showForm && products.length > 0 && (
+                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-200 items-stretch sm:items-center">
+                    <div className="flex-1 min-w-[200px]">
+                        <input 
+                            type="text" 
+                            placeholder="Search by title or SKU..." 
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg outline-none text-sm focus:ring-2 focus:ring-[var(--brand-pink)] focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                        <select 
+                            value={filterSectionId} 
+                            onChange={e => setFilterSectionId(e.target.value)}
+                            className="w-full sm:w-[160px] px-4 py-2.5 border border-slate-300 rounded-lg outline-none text-sm bg-white cursor-pointer focus:ring-2 focus:ring-[var(--brand-pink)] focus:border-transparent"
+                        >
+                            <option value="All">All Sections</option>
+                            {sections.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                        </select>
+                        <select 
+                            value={filterCategoryId} 
+                            onChange={e => setFilterCategoryId(e.target.value)}
+                            className="w-full sm:w-[160px] px-4 py-2.5 border border-slate-300 rounded-lg outline-none text-sm bg-white cursor-pointer focus:ring-2 focus:ring-[var(--brand-pink)] focus:border-transparent"
+                        >
+                            <option value="All">All Categories</option>
+                            {categories.filter(c => filterSectionId === "All" || c.sectionId === filterSectionId).map(c => 
+                                <option key={c._id} value={c._id}>{c.name}</option>
+                            )}
+                        </select>
+                    </div>
+                </div>
+            )}
+
             {/* Products Table */}
             {products.length === 0 ? (
                 <div style={{ background: "#fff", borderRadius: 10, border: "1px dashed #cbd5e1", padding: "80px 20px", textAlign: "center" }}>
@@ -440,8 +505,9 @@ export default function ProductsPage() {
                     </button>
                 </div>
             ) : (
-                <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", overflow: "hidden" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "900px" }}>
                         <thead>
                             <tr style={{ background: "#f8fafc" }}>
                                 <th style={{ padding: "12px 14px", textAlign: "left", width: 40 }}>
@@ -455,7 +521,13 @@ export default function ProductsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {products.map(p => (
+                            {filteredProducts.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                                        No products match your search/filter criteria.
+                                    </td>
+                                </tr>
+                            ) : filteredProducts.map(p => (
                                 <tr key={p._id} style={{ borderTop: "1px solid #f1f5f9" }}
                                     onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
                                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
@@ -491,24 +563,27 @@ export default function ProductsPage() {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
 
             {/* Bulk Add Modal */}
             {bulkAddOpen && (
-                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setBulkAddOpen(false)}>
-                    <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 28, width: 1000, maxWidth: "95vw", boxShadow: "0 20px 60px rgba(0,0,0,.15)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#1e293b", margin: 0 }}>Bulk Add Products</h3>
-                            <button onClick={() => setBulkAddOpen(false)} style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer", color: "#64748b" }}>&times;</button>
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => setBulkAddOpen(false)}>
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-[1000px] max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
+                            <h3 className="m-0 text-lg font-bold text-slate-800">Bulk Add Products</h3>
+                            <button onClick={() => setBulkAddOpen(false)} className="bg-transparent border-none text-2xl cursor-pointer text-slate-500 hover:text-slate-800">&times;</button>
                         </div>
-                        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, paddingRight: 8 }}>
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-3">
                             {bulkAddItems.map((item, idx) => (
-                                <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1.5fr 1.5fr 36px", gap: 10, alignItems: "center", background: "#f8fafc", padding: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                                    <input placeholder="Title *" value={item.title} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], title: e.target.value }; setBulkAddItems(c); }} style={inputStyle} />
-                                    <input type="number" placeholder="Price *" value={item.price} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], price: e.target.value }; setBulkAddItems(c); }} style={inputStyle} />
-                                    <input type="number" placeholder="Stock" value={item.stock} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], stock: e.target.value }; setBulkAddItems(c); }} style={inputStyle} />
-                                    <div style={{ zIndex: 100 - idx }}>
+                                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr_36px] gap-3 items-center bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
+                                    <input placeholder="Title *" value={item.title} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], title: e.target.value }; setBulkAddItems(c); }} style={inputStyle} className="w-full" />
+                                    <div className="flex gap-3 sm:contents">
+                                        <input type="number" placeholder="Price *" value={item.price} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], price: e.target.value }; setBulkAddItems(c); }} style={inputStyle} className="flex-1 sm:w-full" />
+                                        <input type="number" placeholder="Stock" value={item.stock} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], stock: e.target.value }; setBulkAddItems(c); }} style={inputStyle} className="flex-1 sm:w-full" />
+                                    </div>
+                                    <div style={{ zIndex: 100 - idx }} className="w-full">
                                         <CustomSelect
                                             value={item.sectionId}
                                             onChange={(val: string) => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], sectionId: val, categoryId: "" }; setBulkAddItems(c); }}
@@ -516,7 +591,7 @@ export default function ProductsPage() {
                                             placeholder="Section *"
                                         />
                                     </div>
-                                    <div style={{ zIndex: 100 - idx }}>
+                                    <div style={{ zIndex: 100 - idx }} className="w-full">
                                         <CustomSelect
                                             value={item.categoryId}
                                             onChange={(val: string) => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], categoryId: val }; setBulkAddItems(c); }}
@@ -526,20 +601,20 @@ export default function ProductsPage() {
                                         />
                                     </div>
                                     {bulkAddItems.length > 1 ? (
-                                        <button onClick={() => setBulkAddItems(bulkAddItems.filter((_, i) => i !== idx))} style={{ background: "#fee2e2", color: "#ef4444", border: "none", width: 28, height: 28, borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
-                                    ) : <div />}
+                                        <button onClick={() => setBulkAddItems(bulkAddItems.filter((_, i) => i !== idx))} className="bg-red-100 text-red-500 border-none w-7 h-7 rounded-full cursor-pointer flex items-center justify-center mx-auto sm:mx-0">&times;</button>
+                                    ) : <div className="hidden sm:block" />}
                                 </div>
                             ))}
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, paddingTop: 16, borderTop: "1px solid #e2e8f0" }}>
+                        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center p-5 border-t border-slate-200 bg-white gap-4">
                             <button type="button" onClick={() => { if (bulkAddItems.length < 20) setBulkAddItems([...bulkAddItems, { title: "", price: "", stock: "", sectionId: "", categoryId: "" }]) }}
                                 disabled={bulkAddItems.length >= 20}
-                                style={{ padding: "8px 16px", background: "#f1f5f9", color: "#3b82f6", border: "1px dashed #cbd5e1", borderRadius: 6, fontWeight: 600, fontSize: 13, cursor: bulkAddItems.length >= 20 ? "not-allowed" : "pointer" }}>
+                                className={`px-4 py-2 bg-slate-50 text-blue-500 border border-dashed border-slate-300 rounded-md font-semibold text-sm ${bulkAddItems.length >= 20 ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-slate-100"}`}>
                                 + Add another row (Max 20)
                             </button>
-                            <div style={{ display: "flex", gap: 10 }}>
-                                <button onClick={() => setBulkAddOpen(false)} style={{ padding: "10px 20px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 6, fontWeight: 500, fontSize: 14, cursor: "pointer" }}>Cancel</button>
-                                <button onClick={handleBulkAdd} disabled={loading} style={{ padding: "10px 24px", background: "#ec268f", color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, fontSize: 14, cursor: "pointer", opacity: loading ? 0.6 : 1 }}>{loading ? "Saving..." : "Save Products"}</button>
+                            <div className="flex gap-3">
+                                <button onClick={() => setBulkAddOpen(false)} className="flex-1 sm:flex-none px-5 py-2.5 bg-slate-200 text-slate-700 border-none rounded-md font-medium text-sm cursor-pointer hover:bg-slate-300">Cancel</button>
+                                <button onClick={handleBulkAdd} disabled={loading} className={`flex-1 sm:flex-none px-6 py-2.5 bg-[var(--brand-pink)] text-white border-none rounded-md font-semibold text-sm cursor-pointer ${loading ? "opacity-60" : "hover:opacity-90"}`}>{loading ? "Saving..." : "Save Products"}</button>
                             </div>
                         </div>
                     </div>
@@ -548,16 +623,18 @@ export default function ProductsPage() {
 
             {/* Bulk Edit Modal */}
             {bulkEditOpen && (
-                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setBulkEditOpen(false)}>
-                    <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, padding: 28, width: 560, maxWidth: "90vw", boxShadow: "0 20px 60px rgba(0,0,0,.15)", maxHeight: "80vh", overflowY: "auto" }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", marginBottom: 16 }}>Bulk Edit Products</h3>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => setBulkEditOpen(false)}>
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-[560px] max-h-[80vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="p-5 border-b border-slate-200">
+                            <h3 className="text-base font-bold text-slate-800 m-0">Bulk Edit Products</h3>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
                             {bulkEditItems.map((item, idx) => (
-                                <div key={item.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
+                                <div key={item.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3">
                                     <input type="text" value={item.title} onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], title: e.target.value }; setBulkEditItems(c); }}
-                                        placeholder="Title" style={inputStyle} />
+                                        placeholder="Title" style={inputStyle} className="w-full" />
                                     <input type="number" value={item.price} onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], price: e.target.value }; setBulkEditItems(c); }}
-                                        placeholder="Price" style={inputStyle} />
+                                        placeholder="Price" style={inputStyle} className="w-full" />
                                 </div>
                             ))}
                         </div>

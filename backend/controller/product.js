@@ -2,6 +2,11 @@ import db from '../method.js';
 import productSchema from '../schema/product.js';
 import discountSchema from '../schema/discount.js';
 import { cloudinary, deleteImage } from '../config/cloudinary.js';
+import mongoose from 'mongoose';
+
+const toObjectId = (id) => {
+    try { return new mongoose.Types.ObjectId(String(id)); } catch { return id; }
+};
 
 class ProductController {
 
@@ -187,17 +192,19 @@ class ProductController {
     async listproduct(req, res, next) {
         try {
             await db.checkTableExists('tblproducts', productSchema);
-            const { categoryId, minPrice, maxPrice, sort, search, ids, ...rest } = req.body || {};
-            
-            let filter = { ...rest };
-            
-            if (categoryId) filter.categoryId = categoryId;
-            
+            const { categoryId, sectionId, minPrice, maxPrice, sort, search, ids, ...rest } = req.body || {};
+
+            let filter = {}; // Do NOT spread rest — it can introduce invalid Mongo fields
+
+            // Cast IDs to ObjectId so aggregation $match works correctly
+            if (categoryId) filter.categoryId = toObjectId(categoryId);
+            if (sectionId)  filter.sectionId  = toObjectId(sectionId);
+
             if (ids && Array.isArray(ids) && ids.length > 0) {
-                filter._id = { $in: ids };
+                filter._id = { $in: ids.map(toObjectId) };
             }
 
-            // Advanced price filtering
+            // Price filtering
             if (minPrice !== undefined || maxPrice !== undefined) {
                 filter.price = {};
                 if (minPrice !== undefined) filter.price.$gte = Number(minPrice);
@@ -254,7 +261,17 @@ class ProductController {
             
             // Re-instantiate controller if 'this' is unbound (Express router behavior)
             const controller = this && this.applyDiscounts ? this : new ProductController();
-            const discountedData = await controller.applyDiscounts(data);
+            let discountedData = await controller.applyDiscounts(data);
+
+            // Re-apply price filter on discounted prices (discount may have changed product.price)
+            if (minPrice !== undefined || maxPrice !== undefined) {
+                discountedData = discountedData.filter(p => {
+                    const price = Number(p.price) || 0;
+                    if (minPrice !== undefined && price < Number(minPrice)) return false;
+                    if (maxPrice !== undefined && price > Number(maxPrice)) return false;
+                    return true;
+                });
+            }
 
             req.api_data = discountedData;
             next();

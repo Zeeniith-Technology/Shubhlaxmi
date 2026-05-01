@@ -9,6 +9,14 @@ const storeSettingSchema = new mongoose.Schema({
         type: String,
         default: "919876543210"
     },
+    budgetFriendlyMinPrice: {
+        type: Number,
+        default: 0
+    },
+    budgetFriendlyMaxPrice: {
+        type: Number,
+        default: 2000
+    },
     updatedAt: {
         type: String,
         default: () => new Date().toISOString()

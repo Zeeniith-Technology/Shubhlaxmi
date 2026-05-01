@@ -291,7 +291,13 @@ export default function DiscountsPage() {
                         <tbody>
                             {discounts.length === 0 ? (
                                 <tr><td colSpan={5} style={{ padding: "30px", textAlign: "center", color: "#94a3b8" }}>No discounts found.</td></tr>
-                            ) : discounts.map((d: any) => (
+                            ) : discounts.map((d: any) => {
+                                const isExpired = new Date(d.endDate) < new Date();
+                                const statusText = isExpired ? "Discount over" : (d.isActive ? "Active" : "Inactive");
+                                const statusBg = isExpired ? "#fee2e2" : (d.isActive ? "#dcfce7" : "#f1f5f9");
+                                const statusColor = isExpired ? "#b91c1c" : (d.isActive ? "#15803d" : "#64748b");
+                                
+                                return (
                                 <tr key={d._id} style={{ borderBottom: "1px solid #e2e8f0", fontSize: "15px" }}>
                                     <td style={{ padding: "16px 20px", fontWeight: "500", color: "#1e293b" }}>
                                         {d.name}
@@ -306,8 +312,8 @@ export default function DiscountsPage() {
                                         {d.targetType === 'All' ? 'All Products' : `${d.targetIds.length} ${d.targetType}(s)`}
                                     </td>
                                     <td style={{ padding: "16px 20px" }}>
-                                        <span style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600", background: d.isActive ? "#dcfce7" : "#f1f5f9", color: d.isActive ? "#15803d" : "#64748b" }}>
-                                            {d.isActive ? "Active" : "Inactive"}
+                                        <span style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600", background: statusBg, color: statusColor }}>
+                                            {statusText}
                                         </span>
                                     </td>
                                     <td style={{ padding: "16px 20px", textAlign: "right" }}>
@@ -315,7 +321,7 @@ export default function DiscountsPage() {
                                         <button onClick={() => handleDelete(d._id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }}><Trash2 size={18} /></button>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                         </tbody>
                     </table>
                 </div>
