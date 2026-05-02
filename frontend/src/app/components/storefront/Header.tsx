@@ -342,22 +342,18 @@ export default function Header() {
                     </div>
                 </div>
                 {topCategories.slice(0, 5).map((cat) => {
-                    const isSareeMegaMenu = cat.name.toLowerCase() === 'saree' || cat.name.toLowerCase() === 'sarees';
-                    const isSalwarMegaMenu = cat.name.toLowerCase().includes('salwar');
-                    const isMegaMenu = isSareeMegaMenu || isSalwarMegaMenu;
-
                     const subCategories = categories.filter((sub: any) => sub.parentCategoryId === cat._id);
                     const hasSubCategories = subCategories.length > 0;
 
                     return (
                         <div
                             key={cat._id}
-                            className={`group ${isMegaMenu ? '' : 'relative'}`}
-                            onMouseEnter={() => (isMegaMenu || hasSubCategories) ? setActiveDropdown(cat._id) : undefined}
+                            className="relative group"
+                            onMouseEnter={() => hasSubCategories ? setActiveDropdown(cat._id) : undefined}
                             onMouseLeave={() => setActiveDropdown(null)}
                         >
-                            {/* If no subcategories and not a mega-menu, render as a plain link */}
-                            {!isMegaMenu && !hasSubCategories ? (
+                            {/* If no subcategories, render as a plain link */}
+                            {!hasSubCategories ? (
                                 <Link
                                     href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
                                     className="flex items-center gap-1 text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
@@ -371,8 +367,8 @@ export default function Header() {
                                 </button>
                             )}
 
-                            {/* Standard Dropdown (for generic categories) */}
-                            {!isMegaMenu && activeDropdown === cat._id && (
+                            {/* Standard Dropdown */}
+                            {activeDropdown === cat._id && hasSubCategories && (
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 bg-white shadow-xl rounded-b-lg border border-gray-100 py-4 px-6 min-w-[220px] z-50">
                                     <Link
                                         href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
@@ -380,110 +376,15 @@ export default function Header() {
                                     >
                                         See All {cat.name}
                                     </Link>
-                                    {categories
-                                        .filter((sub: any) => sub.parentCategoryId === cat._id)
-                                        .map((sub) => (
-                                            <Link
-                                                key={sub._id}
-                                                href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`}
-                                                className="block py-1.5 text-[13px] text-gray-600 hover:text-[#ea2083] font-[var(--font-body)]"
-                                            >
-                                                {sub.name}
-                                            </Link>
-                                        ))}
-                                </div>
-                            )}
-
-                            {/* Mega Menu: Sarees */}
-                            {isSareeMegaMenu && activeDropdown === cat._id && (
-                                <div className="absolute top-full left-0 w-full bg-white shadow-xl border-t border-gray-100 z-50 transition-all duration-300">
-                                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
-                                        {/* Column 1: STYLE */}
-                                        <div className="flex-1 group/item cursor-pointer">
-                                            <div className="overflow-hidden mb-4 rounded-sm">
-                                                <img src="https://images.unsplash.com/photo-1610189014168-527e2b86abce?auto=format&fit=crop&q=80&w=400" alt="Style" className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover/item:scale-110" />
-                                            </div>
-                                            <h4 className="font-bold text-[13px] tracking-widest text-black mb-4 uppercase">STYLE</h4>
-                                            <div className="flex flex-col gap-3">
-                                                <Link href="/collections/sarees" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">See all Sarees</Link>
-                                                <Link href="/collections/sarees-embroidered" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Embroidered Sarees</Link>
-                                                <Link href="/collections/sarees-designer" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Designer Sarees</Link>
-                                                <Link href="/collections/sarees-ready-to-wear" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Ready to Wear Sarees</Link>
-                                                <Link href="/collections/sarees-ready-blouse" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Ready Blouse with Saree</Link>
-                                                <Link href="/collections/sarees-printed" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Printed Sarees</Link>
-                                                <Link href="/collections/sarees-hand-embroidered" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Hand Embroidered Sarees</Link>
-                                            </div>
-                                        </div>
-                                        {/* Column 2: FABRICS */}
-                                        <div className="flex-1 group/item cursor-pointer">
-                                            <div className="overflow-hidden mb-4 rounded-sm">
-                                                <img src="https://images.unsplash.com/photo-1583391733958-6115fa01fcd2?auto=format&fit=crop&q=80&w=400" alt="Fabrics" className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover/item:scale-110" />
-                                            </div>
-                                            <h4 className="font-bold text-[13px] tracking-widest text-black mb-4 uppercase">FABRICS</h4>
-                                            <div className="flex flex-col gap-3">
-                                                <Link href="/collections/sarees-banarasi" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Banarasi Sarees</Link>
-                                                <Link href="/collections/sarees-patola" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Patola Weaving Sarees from ₹3000-₹6000</Link>
-                                            </div>
-                                        </div>
-                                        {/* Column 3: OCCASION */}
-                                        <div className="flex-1 group/item cursor-pointer">
-                                            <div className="overflow-hidden mb-4 rounded-sm">
-                                                <img src="https://images.unsplash.com/photo-1613852348851-f7a93a11488c?auto=format&fit=crop&q=80&w=400" alt="Occasion" className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover/item:scale-110" />
-                                            </div>
-                                            <h4 className="font-bold text-[13px] tracking-widest text-black mb-4 uppercase">OCCASION</h4>
-                                            <div className="flex flex-col gap-3">
-                                                <Link href="/collections/sarees-bridal" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Bridal Sarees</Link>
-                                                <Link href="/collections/sarees-party" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Party wear Sarees</Link>
-                                                <Link href="/collections/sarees-wedding" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Wedding Sarees</Link>
-                                                <Link href="/collections/sarees-festival" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Festival Sarees</Link>
-                                            </div>
-                                        </div>
-                                        {/* Column 4: BUDGET STYLES */}
-                                        <div className="flex-1 group/item cursor-pointer">
-                                            <div className="overflow-hidden mb-4 rounded-sm">
-                                                <img src="https://images.unsplash.com/photo-1583391265691-10c0e764a8be?auto=format&fit=crop&q=80&w=400" alt="Budget" className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover/item:scale-110" />
-                                            </div>
-                                            <h4 className="font-bold text-[13px] tracking-widest text-black mb-4 uppercase">BUDGET STYLES</h4>
-                                            <div className="flex flex-col gap-3">
-                                                <Link href="/collections/sarees-under-2000" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Sarees Under INR 2000</Link>
-                                                <Link href="/collections/sarees-under-3500" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">Sarees Under INR 3500</Link>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Mega Menu: Salwar Kameez & Indo Western */}
-                            {isSalwarMegaMenu && activeDropdown === cat._id && (
-                                <div className="absolute top-full left-0 w-full bg-white shadow-xl border-t border-gray-100 z-50 transition-all duration-300">
-                                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
-                                        {/* Column 1: SALWAR KAMEEZ */}
-                                        <div className="flex-1 max-w-[280px] group/item cursor-pointer">
-                                            <div className="overflow-hidden mb-4 rounded-sm">
-                                                <img src="https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&q=80&w=400" alt="Salwar Kameez" className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover/item:scale-110" />
-                                            </div>
-                                            <h4 className="font-bold text-[13px] tracking-widest text-black mb-4 uppercase">SALWAR KAMEEZ</h4>
-                                            <div className="flex flex-col gap-3">
-                                                <Link href="/collections/salwar-kameez" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">See all Salwar Kameez</Link>
-                                            </div>
-                                        </div>
-                                        {/* Column 2: PALAZZO SUITS */}
-                                        <div className="flex-1 max-w-[280px] group/item cursor-pointer">
-                                            <div className="overflow-hidden mb-4 rounded-sm">
-                                                <img src="https://images.unsplash.com/photo-1509319117193-57bab727e09d?auto=format&fit=crop&q=80&w=400" alt="Palazzo Suits" className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover/item:scale-110" />
-                                            </div>
-                                            <h4 className="font-bold text-[13px] tracking-widest text-black mb-4 uppercase">PALAZZO SUITS</h4>
-                                            <div className="flex flex-col gap-3">
-                                                <Link href="/collections/palazzo-suits" className="text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors">See all Palazzo Suits</Link>
-                                            </div>
-                                        </div>
-                                        {/* Right Side: SEE ALL */}
-                                        <div className="flex-1 flex flex-col justify-start items-start pt-8 pl-10 border-l border-gray-100 ml-6">
-                                            <Link href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`} className="text-sm tracking-[0.2em] font-bold text-black hover:text-[var(--brand-pink)] uppercase transition-colors">
-                                                See All
-                                            </Link>
-                                        </div>
-                                    </div>
+                                    {subCategories.map((sub: any) => (
+                                        <Link
+                                            key={sub._id}
+                                            href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                            className="block py-1.5 text-[13px] text-gray-600 hover:text-[#ea2083] font-[var(--font-body)]"
+                                        >
+                                            {sub.name}
+                                        </Link>
+                                    ))}
                                 </div>
                             )}
                         </div>
