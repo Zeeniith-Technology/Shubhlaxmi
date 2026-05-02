@@ -164,7 +164,7 @@ export default function LiveChatWidget() {
 
             {/* WhatsApp Floating Button */}
             <a
-                href="https://wa.me/910000000000" // Replace with actual WhatsApp number
+                href="https://wa.me/919979628223" // Replace with actual WhatsApp number
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`fixed right-6 z-40 flex items-center justify-center w-[52px] h-[52px] bg-[#25D366] text-white rounded-full shadow-lg hover:bg-[#1ebe57] transition-all duration-300
