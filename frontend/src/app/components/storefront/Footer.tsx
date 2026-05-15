@@ -1,11 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Instagram, Facebook, Youtube, Mail, Phone, MapPin, ChevronDown } from "lucide-react";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 export default function Footer() {
     const [openSection, setOpenSection] = useState<string | null>(null);
+    const [categories, setCategories] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/public/categories`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({}),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setCategories(data.data || []);
+                }
+            } catch (e) {
+                console.error("Failed to fetch categories", e);
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    const topCategories = categories.filter((cat: any) => !cat.parentCategoryId);
 
     const toggleSection = (section: string) => {
         setOpenSection(prev => prev === section ? null : section);
@@ -19,21 +43,21 @@ export default function Footer() {
 
                     {/* Brand Column (Always visible, first on all screens) */}
                     <div className="mb-8 sm:mb-0">
-                        <Link href="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-block mb-5">
-                            <img src="/Logo.png" alt="Shubhlaxmi" className="h-14 w-auto object-contain bg-white px-4 py-2 rounded-lg shadow-sm" />
+                        <Link href="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex bg-white px-5 py-3 rounded-2xl shadow-lg shadow-black/10 mb-6 hover:-translate-y-1 transition-transform duration-300">
+                            <img src="/Logo.png" alt="Shubhlaxmi" className="h-10 sm:h-12 w-auto object-contain" />
                         </Link>
                         <p className="text-[13px] text-white/90 leading-relaxed font-[var(--font-body)] pr-4 sm:pr-0">
                             Your one-stop destination for designer ethnic wear. We bring you the finest collection of sarees, lehengas, salwar kameez and more.
                         </p>
                         {/* Social Icons */}
                         <div className="flex gap-4 mt-6">
-                            <a href="#" className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm" aria-label="Instagram">
+                            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm" aria-label="Instagram">
                                 <Instagram size={16} />
                             </a>
-                            <a href="#" className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm" aria-label="Facebook">
+                            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm" aria-label="Facebook">
                                 <Facebook size={16} />
                             </a>
-                            <a href="#" className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm" aria-label="YouTube">
+                            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shadow-sm" aria-label="YouTube">
                                 <Youtube size={16} />
                             </a>
                         </div>
@@ -52,13 +76,13 @@ export default function Footer() {
                         </button>
                         <div className={`sm:mt-5 overflow-hidden transition-all duration-300 ${openSection === "categories" ? "max-h-96 mt-4" : "max-h-0 sm:max-h-max"}`}>
                             <ul className="space-y-3 pb-2 sm:pb-0">
-                                {["New Arrivals", "Sarees", "Lehengas", "Salwar Kameez", "Gowns", "Kurtis"].map((item) => (
-                                    <li key={item}>
+                                {topCategories.slice(0, 6).map((cat) => (
+                                    <li key={cat._id}>
                                         <Link
-                                            href={`/collections/${item.toLowerCase().replace(/\s+/g, "-")}`}
+                                            href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
                                             className="text-[13px] text-white/80 hover:text-white transition-colors font-[var(--font-body)]"
                                         >
-                                            {item}
+                                            {cat.name}
                                         </Link>
                                     </li>
                                 ))}

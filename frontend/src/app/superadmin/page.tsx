@@ -11,9 +11,9 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         // Basic client-side route protection
-        const token = localStorage.getItem("admin_token");
+        const token = localStorage.getItem("superadmin_token");
         if (!token) {
-            router.push("/admin/login");
+            router.push("/superadmin/login");
         } else {
             setIsAuthenticated(true);
             fetchStats(token);
@@ -50,19 +50,19 @@ export default function AdminDashboard() {
             </p>
 
             <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Link href="/admin/products" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
+                <Link href="/superadmin/products" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
                     <h2 className="text-xl font-semibold mb-2 text-gray-800">Total Products</h2>
                     <p className="text-3xl font-bold text-[#ec268f]">{stats.totalProducts}</p>
                 </Link>
-                <Link href="/admin/categories" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
+                <Link href="/superadmin/categories" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
                     <h2 className="text-xl font-semibold mb-2 text-gray-800">Total Categories</h2>
                     <p className="text-3xl font-bold text-[#ec268f]">{stats.totalCategories}</p>
                 </Link>
-                <Link href="/admin/orders" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
+                <Link href="/superadmin/orders" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
                     <h2 className="text-xl font-semibold mb-2 text-gray-800">Total Orders</h2>
                     <p className="text-3xl font-bold text-[#ec268f]">{stats.totalOrders}</p>
                 </Link>
-                <Link href="/admin/orders" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
+                <Link href="/superadmin/orders" className="bg-white p-6 rounded-lg shadow border border-gray-100 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer block">
                     <h2 className="text-xl font-semibold mb-2 text-gray-800">Revenue</h2>
                     <p className="text-3xl font-bold text-[#ec268f]">₹{stats.totalRevenue.toLocaleString()}</p>
                 </Link>
@@ -70,8 +70,8 @@ export default function AdminDashboard() {
 
             <button
                 onClick={() => {
-                    localStorage.removeItem("admin_token");
-                    router.push("/admin/login");
+                    localStorage.removeItem("superadmin_token");
+                    router.push("/superadmin/login");
                 }}
                 className="mt-8 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
             >

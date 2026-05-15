@@ -11,25 +11,28 @@ export default function Sidebar() {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const navItems = [
-        { name: "Dashboard", href: "/admin", icon: <LayoutDashboard size={20} /> },
-        { name: "Banners", href: "/admin/banners", icon: <ImageIcon size={20} /> },
-        { name: "Special Collections", href: "/admin/special-collections", icon: <Star size={20} /> },
-        { name: "Sections", href: "/admin/sections", icon: <Layers size={20} /> },
-        { name: "Categories", href: "/admin/categories", icon: <FolderTree size={20} /> },
-        { name: "Attributes", href: "/admin/attributes", icon: <Sparkles size={20} /> },
-        { name: "Products", href: "/admin/products", icon: <ShoppingBag size={20} /> },
-        { name: "Discounts & Offers", href: "/admin/discounts", icon: <Tag size={20} /> },
-        { name: "Appointments", href: "/admin/appointments", icon: <Video size={20} /> },
-        { name: "Orders", href: "/admin/orders", icon: <Package size={20} /> },
-        { name: "Customers", href: "/admin/users", icon: <Users size={20} /> },
-        { name: "Homepage Config", href: "/admin/homepage", icon: <Home size={20} /> },
-        { name: "Store Settings", href: "/admin/settings", icon: <Sparkles size={20} /> },
+        { name: "Dashboard", href: "/superadmin", icon: <LayoutDashboard size={20} /> },
+        { name: "Manage Admins", href: "/superadmin/admins", icon: <ShieldAlert size={20} /> },
+        { name: "Banners", href: "/superadmin/banners", icon: <ImageIcon size={20} /> },
+        { name: "Special Collections", href: "/superadmin/special-collections", icon: <Star size={20} /> },
+        { name: "Sections", href: "/superadmin/sections", icon: <Layers size={20} /> },
+        { name: "Categories", href: "/superadmin/categories", icon: <FolderTree size={20} /> },
+        { name: "Attributes", href: "/superadmin/attributes", icon: <Sparkles size={20} /> },
+        { name: "Products", href: "/superadmin/products", icon: <ShoppingBag size={20} /> },
+        { name: "Discounts & Offers", href: "/superadmin/discounts", icon: <Tag size={20} /> },
+        { name: "Appointments", href: "/superadmin/appointments", icon: <Video size={20} /> },
+        { name: "Orders", href: "/superadmin/orders", icon: <Package size={20} /> },
+        { name: "Customers", href: "/superadmin/users", icon: <Users size={20} /> },
+        { name: "Homepage Config", href: "/superadmin/homepage", icon: <Home size={20} /> },
+        { name: "Store Settings", href: "/superadmin/settings", icon: <Sparkles size={20} /> },
     ];
 
+
+
     const handleLogout = () => {
-        localStorage.removeItem("admin_token");
-        localStorage.removeItem("admin_data");
-        router.push("/admin/login");
+        localStorage.removeItem("superadmin_token");
+        localStorage.removeItem("superadmin_data");
+        router.push("/superadmin/login");
     };
 
     return (
@@ -57,7 +60,7 @@ export default function Sidebar() {
             >
                 <div className="p-6 text-center border-b border-gray-800 hidden md:block">
                     <img src="/Logo.png" alt="Shubhlaxmi" className="h-12 w-auto object-contain mx-auto bg-white px-3 py-1.5 rounded-lg shadow" />
-                    <p className="text-xs text-gray-500 mt-3 uppercase tracking-widest font-semibold">Admin Panel</p>
+                    <p className="text-xs text-gray-500 mt-3 uppercase tracking-widest font-semibold">Super Admin Panel</p>
                 </div>
 
                 <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

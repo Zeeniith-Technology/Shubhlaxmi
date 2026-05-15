@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
         setError("");
 
         try {
-            const res = await fetch(`${API_BASE}/admin/login`, {
+            const res = await fetch(`${API_BASE}/superadmin/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -27,10 +27,10 @@ export default function AdminLoginPage() {
             const data = await res.json();
             if (data.success) {
                 // Save token to localStorage
-                localStorage.setItem("admin_token", data.token);
-                localStorage.setItem("admin_data", JSON.stringify(data.user));
+                localStorage.setItem("superadmin_token", data.token);
+                localStorage.setItem("superadmin_data", JSON.stringify(data.user));
                 // Redirect to admin dashboard
-                router.push("/admin");
+                router.push("/superadmin");
             } else {
                 setError(data.message || "Invalid credentials");
             }
@@ -47,8 +47,8 @@ export default function AdminLoginPage() {
                 <div className="flex justify-center mb-6">
                     <img src="/Logo.png" alt="Shubhlaxmi" className="h-14 w-auto object-contain" />
                 </div>
-                <h1 className="text-lg font-bold text-center mb-6 text-gray-600 uppercase tracking-widest">
-                    Admin Secure Login
+                <h1 className="text-lg font-bold text-center mb-6 text-[#ec268f] uppercase tracking-widest">
+                    Super Admin Login
                 </h1>
 
                 {error && (

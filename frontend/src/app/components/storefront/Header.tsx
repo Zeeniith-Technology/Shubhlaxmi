@@ -202,19 +202,19 @@ export default function Header() {
                             {isSearchOpen ? <X size={20} /> : <Search size={20} />}
                         </button>
                         {user ? (
-                            <Link href="/profile" className="text-[var(--text-primary)] hover:text-[var(--brand-pink)] transition-colors hidden sm:flex items-center gap-2" aria-label="Account">
+                            <Link href="/profile" className="text-[var(--text-primary)] hover:text-[var(--brand-pink)] transition-colors flex items-center gap-2" aria-label="Account">
                                 <div className="w-6 h-6 bg-[var(--brand-pink)] rounded-full text-white flex items-center justify-center text-xs font-bold">
                                     {user.name?.charAt(0).toUpperCase()}
                                 </div>
                             </Link>
                         ) : (
-                            <button
-                                onClick={() => setIsLoginOpen(true)}
-                                className="text-[var(--text-primary)] hover:text-[var(--brand-pink)] transition-colors hidden sm:block"
+                            <Link
+                                href="/login"
+                                className="text-[var(--text-primary)] hover:text-[var(--brand-pink)] transition-colors flex items-center"
                                 aria-label="Login"
                             >
                                 <User size={20} />
-                            </button>
+                            </Link>
                         )}
                         <Link
                             href="/profile/wishlist"

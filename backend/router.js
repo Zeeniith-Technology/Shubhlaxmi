@@ -3,7 +3,7 @@ import loginController from './controller/login.js';
 import db from './method.js';
 
 // Import Architecture Components
-import auth from './middlewares/auth.js';
+import { auth, requireSuperAdmin, requireAdmin } from './middlewares/auth.js';
 import responsedata from './middlewares/responsedata.js';
 import CategoryController from './controller/category.js';
 import SectionController from './controller/section.js';
@@ -19,6 +19,7 @@ import { getStoreSettings, updateStoreSettings } from './controller/storeSetting
 
 import * as customerAuth from './controller/customerAuth.js';
 import order from './controller/order.js';
+import dashboard from './controller/dashboard.js';
 import authCustomer from './middlewares/customerAuth.js';
 
 const router = express.Router();
@@ -34,68 +35,76 @@ router.post('/request-otp', loginController.requestOtp);
 router.post('/verify-otp', loginController.verifyOtp);
 router.post('/admin/login', loginController.adminLogin);
 
+// SuperAdmin Only Routes
+router.post('/superadmin/login', loginController.superAdminLogin);
+router.post('/superadmin/admins/list', requireSuperAdmin, loginController.listAdmins);
+router.post('/superadmin/admins/create', requireSuperAdmin, loginController.createAdmin);
+router.post('/superadmin/admins/delete', requireSuperAdmin, loginController.deleteAdmin);
+
 // 3. Category Routes
-router.post('/category/add', auth, upload.single('image'), category.addcategory, responsedata);
-router.post('/category/list', auth, category.listcategory, responsedata);
-router.post('/category/update', auth, upload.single('image'), category.updatecategory, responsedata);
-router.post('/category/delete', auth, category.deletecategory, responsedata);
+router.post('/dashboard/stats', requireAdmin, dashboard.getStats, responsedata);
+
+router.post('/category/add', requireAdmin, upload.single('image'), category.addcategory, responsedata);
+router.post('/category/list', requireAdmin, category.listcategory, responsedata);
+router.post('/category/update', requireAdmin, upload.single('image'), category.updatecategory, responsedata);
+router.post('/category/delete', requireAdmin, category.deletecategory, responsedata);
 
 // 4. Section Routes
-router.post('/section/add', auth, section.addsection, responsedata);
-router.post('/section/list', auth, section.listsection, responsedata);
-router.post('/section/update', auth, section.updatesection, responsedata);
-router.post('/section/delete', auth, section.deletesection, responsedata);
+router.post('/section/add', requireAdmin, section.addsection, responsedata);
+router.post('/section/list', requireAdmin, section.listsection, responsedata);
+router.post('/section/update', requireAdmin, section.updatesection, responsedata);
+router.post('/section/delete', requireAdmin, section.deletesection, responsedata);
 
 // 5. Product Routes
-router.post('/product/add', auth, upload.array('images', 10), product.addproduct, responsedata);
-router.post('/product/list', auth, product.listproduct, responsedata);
-router.post('/product/update', auth, upload.array('images', 10), product.updateproduct, responsedata);
-router.post('/product/delete', auth, product.deleteproduct, responsedata);
+router.post('/product/add', requireAdmin, upload.array('images', 10), product.addproduct, responsedata);
+router.post('/product/list', requireAdmin, product.listproduct, responsedata);
+router.post('/product/update', requireAdmin, upload.array('images', 10), product.updateproduct, responsedata);
+router.post('/product/delete', requireAdmin, product.deleteproduct, responsedata);
 
 // 6. Bulk Section Routes
-router.post('/section/bulkadd', auth, section.bulkaddsection, responsedata);
-router.post('/section/bulkupdate', auth, section.bulkupdatesection, responsedata);
-router.post('/section/bulkdelete', auth, section.bulkdeletesection, responsedata);
+router.post('/section/bulkadd', requireAdmin, section.bulkaddsection, responsedata);
+router.post('/section/bulkupdate', requireAdmin, section.bulkupdatesection, responsedata);
+router.post('/section/bulkdelete', requireAdmin, section.bulkdeletesection, responsedata);
 
 // 7. Bulk Category Routes
-router.post('/category/bulkadd', auth, upload.any(), category.bulkaddcategory, responsedata);
-router.post('/category/bulkupdate', auth, upload.any(), category.bulkupdatecategory, responsedata);
+router.post('/category/bulkadd', requireAdmin, upload.any(), category.bulkaddcategory, responsedata);
+router.post('/category/bulkupdate', requireAdmin, upload.any(), category.bulkupdatecategory, responsedata);
 
 // 8. Settings Routes
-router.post('/settings/marquee/get', auth, getMarqueeSetting, responsedata);
-router.post('/settings/marquee/update', auth, updateMarqueeSetting, responsedata);
+router.post('/settings/marquee/get', requireAdmin, getMarqueeSetting, responsedata);
+router.post('/settings/marquee/update', requireAdmin, updateMarqueeSetting, responsedata);
 router.get('/public/marquee', getMarqueeSetting);
-router.post('/category/bulkdelete', auth, category.bulkdeletecategory, responsedata);
+router.post('/category/bulkdelete', requireAdmin, category.bulkdeletecategory, responsedata);
 
 // 8. Bulk Product Routes
-router.post('/product/bulkadd', auth, product.bulkaddproduct, responsedata);
-router.post('/product/bulkupdate', auth, product.bulkupdateproduct, responsedata);
-router.post('/product/bulkdelete', auth, product.bulkdeleteproduct, responsedata);
+router.post('/product/bulkadd', requireAdmin, product.bulkaddproduct, responsedata);
+router.post('/product/bulkupdate', requireAdmin, product.bulkupdateproduct, responsedata);
+router.post('/product/bulkdelete', requireAdmin, product.bulkdeleteproduct, responsedata);
 
 // 9. Attribute Routes
-router.post('/attribute/add', auth, attribute.addattribute, responsedata);
-router.post('/attribute/list', auth, attribute.listattribute, responsedata);
-router.post('/attribute/update', auth, attribute.updateattribute, responsedata);
-router.post('/attribute/delete', auth, attribute.deleteattribute, responsedata);
+router.post('/attribute/add', requireAdmin, attribute.addattribute, responsedata);
+router.post('/attribute/list', requireAdmin, attribute.listattribute, responsedata);
+router.post('/attribute/update', requireAdmin, attribute.updateattribute, responsedata);
+router.post('/attribute/delete', requireAdmin, attribute.deleteattribute, responsedata);
 
 // 10. Banner Routes
 const bannerUpload = upload.fields([
     { name: 'desktopImage', maxCount: 1 },
     { name: 'mobileImage', maxCount: 1 }
 ]);
-router.post('/banner/add', auth, bannerUpload, banner.addbanner, responsedata);
-router.post('/banner/list', auth, banner.listbanner, responsedata);
-router.post('/banner/update', auth, bannerUpload, banner.updatebanner, responsedata);
-router.post('/banner/delete', auth, banner.deletebanner, responsedata);
+router.post('/banner/add', requireAdmin, bannerUpload, banner.addbanner, responsedata);
+router.post('/banner/list', requireAdmin, banner.listbanner, responsedata);
+router.post('/banner/update', requireAdmin, bannerUpload, banner.updatebanner, responsedata);
+router.post('/banner/delete', requireAdmin, banner.deletebanner, responsedata);
 
 // 10b. Special Collection Routes
 const specialCollectionUpload = upload.fields([
     { name: 'image', maxCount: 1 }
 ]);
-router.post('/special-collection/add', auth, specialCollectionUpload, specialCollection.addSpecialCollection, responsedata);
-router.post('/special-collection/list', auth, specialCollection.listSpecialCollections, responsedata);
-router.post('/special-collection/update', auth, specialCollectionUpload, specialCollection.updateSpecialCollection, responsedata);
-router.post('/special-collection/delete', auth, specialCollection.deleteSpecialCollection, responsedata);
+router.post('/special-collection/add', requireAdmin, specialCollectionUpload, specialCollection.addSpecialCollection, responsedata);
+router.post('/special-collection/list', requireAdmin, specialCollection.listSpecialCollections, responsedata);
+router.post('/special-collection/update', requireAdmin, specialCollectionUpload, specialCollection.updateSpecialCollection, responsedata);
+router.post('/special-collection/delete', requireAdmin, specialCollection.deleteSpecialCollection, responsedata);
 
 // 11. Public (No-Auth) Routes for Storefront
 router.post('/public/banners', banner.listbanner, responsedata);
@@ -107,6 +116,8 @@ router.post('/public/special-collections', specialCollection.listSpecialCollecti
 // 12. Customer Authentication Routes
 router.post('/customer/register', customerAuth.register);
 router.post('/customer/login', customerAuth.login);
+router.post('/customer/forgot-password', customerAuth.forgotPassword);
+router.post('/customer/reset-password', customerAuth.resetPassword);
 
 // 13. Protected Customer Routes
 router.post('/customer/profile', authCustomer, customerAuth.getProfile);
@@ -120,25 +131,26 @@ router.post('/customer/wishlist/toggle', authCustomer, customerAuth.toggleWishli
 
 router.post('/customer/order/add', authCustomer, order.placeOrder, responsedata);
 router.post('/customer/order/history', authCustomer, order.getMyOrders, responsedata);
+router.post('/customer/appointment/history', authCustomer, appointment.getMyAppointments);
 
 // Razorpay Payment Routes (Securely auth'd to Customer)
 router.post('/customer/order/create-razorpay-order', authCustomer, order.createRazorpayOrder, responsedata);
 router.post('/customer/order/verify-payment', authCustomer, order.verifyPayment, responsedata);
 
 // Admin route to view all customers
-router.post('/customer/list', auth, customerAuth.listUsers);
+router.post('/customer/list', requireAdmin, customerAuth.listUsers);
 
 // 14. Appointment Routes
 router.post('/public/appointment/add', appointment.addappointment, responsedata);
 router.post('/public/appointment/booked-slots', appointment.listBookedSlots, responsedata);
-router.post('/appointment/list', auth, appointment.listappointment, responsedata);
-router.post('/appointment/update', auth, appointment.updateappointment, responsedata);
-router.post('/appointment/delete', auth, appointment.deleteappointment, responsedata);
+router.post('/appointment/list', requireAdmin, appointment.listappointment, responsedata);
+router.post('/appointment/update', requireAdmin, appointment.updateappointment, responsedata);
+router.post('/appointment/delete', requireAdmin, appointment.deleteappointment, responsedata);
 
 // 15. Order Routes (Admin)
-router.post('/order/list', auth, order.listorders, responsedata);
-router.post('/order/update-status', auth, order.updateorderstatus, responsedata);
-router.post('/order/delete', auth, order.deleteorder, responsedata);
+router.post('/order/list', requireAdmin, order.listorders, responsedata);
+router.post('/order/update-status', requireAdmin, order.updateorderstatus, responsedata);
+router.post('/order/delete', requireAdmin, order.deleteorder, responsedata);
 
 // ==========================================
 // STOREFRONT - Settings APIs
@@ -146,20 +158,20 @@ router.post('/order/delete', auth, order.deleteorder, responsedata);
 
 // Trending Styles setting & products
 router.post('/settings/trending/get', getTrendingSetting);
-router.post('/settings/trending/update', auth, updateTrendingSetting);
+router.post('/settings/trending/update', requireAdmin, updateTrendingSetting);
 router.post('/storefront/trending-products', getTrendingProducts);
 
 // Global Store Settings (WhatsApp Checkout, etc)
 router.post('/public/store-settings', getStoreSettings);
-router.post('/admin/store-settings/update', auth, updateStoreSettings);
+router.post('/admin/store-settings/update', requireAdmin, updateStoreSettings);
 
 // ==========================================
 // DISCOUNT APIs
 // ==========================================
-router.post('/discount/add', auth, discount.addDiscount, responsedata);
-router.post('/discount/list', auth, discount.listDiscounts, responsedata);
-router.post('/discount/update', auth, discount.updateDiscount, responsedata);
-router.post('/discount/delete', auth, discount.deleteDiscount, responsedata);
-router.post('/discount/bulkdelete', auth, discount.bulkDeleteDiscounts, responsedata);
+router.post('/discount/add', requireAdmin, discount.addDiscount, responsedata);
+router.post('/discount/list', requireAdmin, discount.listDiscounts, responsedata);
+router.post('/discount/update', requireAdmin, discount.updateDiscount, responsedata);
+router.post('/discount/delete', requireAdmin, discount.deleteDiscount, responsedata);
+router.post('/discount/bulkdelete', requireAdmin, discount.bulkDeleteDiscounts, responsedata);
 
 export default router;

@@ -63,15 +63,12 @@ class LoginController {
             // Send Email Notification for normal users và admins
 
             try {
-                // Uncomment to actually send email when credentials are added to .env
-                /*
                 await transporter.sendMail({
                     from: process.env.EMAIL_USER,
                     to: email,
-                    subject: 'Your Amrut.co Login OTP',
+                    subject: 'Your Shubhlaxmi Login OTP',
                     text: `Your 4-digit OTP is: ${otpCode}. It will expire in 10 minutes.`
                 });
-                */
                 console.log(`[USER LOGIN] OTP sent to email ${email}: ${otpCode}`);
             } catch (emailError) {
                 console.error("Failed to send OTP email:", emailError);
@@ -194,7 +191,7 @@ class LoginController {
             const user = users[0];
 
             if (user.role !== 'admin') {
-                return res.status(403).json({ success: false, message: "Access denied. Admins only." });
+                return res.status(403).json({ success: false, message: "Access denied. Regular Admins only." });
             }
 
             if (!user.password) {
@@ -226,6 +223,123 @@ class LoginController {
 
         } catch (error) {
             console.error("Admin login error:", error);
+            res.status(500).json({ success: false, message: "Internal server error" });
+        }
+    }
+
+    // SuperAdmin Login
+    async superAdminLogin(req, res) {
+        try {
+            const { email, password } = req.body;
+            if (!email || !password) {
+                return res.status(400).json({ success: false, message: "Email and password are required" });
+            }
+
+            const users = await db.fetchdata({ email }, 'tblusers', loginSchema);
+            if (users.length === 0) {
+                return res.status(401).json({ success: false, message: "Invalid credentials." });
+            }
+
+            const user = users[0];
+
+            if (user.role !== 'superadmin') {
+                return res.status(403).json({ success: false, message: "Access denied. Super Admins only." });
+            }
+
+            if (!user.password) {
+                return res.status(401).json({ success: false, message: "Super Admin password not set." });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(401).json({ success: false, message: "Invalid credentials." });
+            }
+
+            const token = jwt.sign(
+                { id: user._id, role: user.role },
+                process.env.JWT_SECRET || 'fallback_secret_key',
+                { expiresIn: '20d' }
+            );
+
+            return res.status(200).json({
+                success: true,
+                message: "Super Admin login successful",
+                token,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                }
+            });
+
+        } catch (error) {
+            console.error("Super Admin login error:", error);
+            res.status(500).json({ success: false, message: "Internal server error" });
+        }
+    }
+
+    // SuperAdmin only: List Admins
+    async listAdmins(req, res) {
+        try {
+            const query = { role: { $in: ['admin', 'superadmin'] } };
+            const admins = await db.fetchdata(query, 'tblusers', loginSchema);
+            // Remove passwords from response
+            const safeAdmins = admins.map(a => ({ _id: a._id, name: a.name, email: a.email, role: a.role, createdAt: a.createdAt }));
+            return res.status(200).json({ success: true, admins: safeAdmins });
+        } catch (error) {
+            console.error("List admins error:", error);
+            res.status(500).json({ success: false, message: "Internal server error" });
+        }
+    }
+
+    // SuperAdmin only: Create Admin
+    async createAdmin(req, res) {
+        try {
+            const { name, email, number, password, role } = req.body;
+            if (!name || !email || !password) {
+                return res.status(400).json({ success: false, message: "Name, email and password are required" });
+            }
+
+            const existing = await db.fetchdata({ email }, 'tblusers', loginSchema);
+            if (existing.length > 0) {
+                return res.status(400).json({ success: false, message: "User already exists with this email" });
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const newAdmin = {
+                name,
+                email,
+                number: number || '',
+                password: hashedPassword,
+                role: role === 'superadmin' ? 'superadmin' : 'admin'
+            };
+
+            await db.executdata('tblusers', loginSchema, 'i', newAdmin);
+            return res.status(201).json({ success: true, message: "Admin created successfully" });
+        } catch (error) {
+            console.error("Create admin error:", error);
+            res.status(500).json({ success: false, message: "Internal server error" });
+        }
+    }
+
+    // SuperAdmin only: Delete Admin
+    async deleteAdmin(req, res) {
+        try {
+            const { id } = req.body;
+            if (!id) return res.status(400).json({ success: false, message: "Admin ID is required" });
+
+            const admins = await db.fetchdata({ _id: id }, 'tblusers', loginSchema);
+            if (admins.length === 0) return res.status(404).json({ success: false, message: "Admin not found" });
+
+            if (admins[0].role === 'superadmin' && admins[0]._id.toString() === req.user.id.toString()) {
+                return res.status(400).json({ success: false, message: "Cannot delete your own superadmin account" });
+            }
+
+            await db.executdata('tblusers', loginSchema, 'd', { _id: id });
+            return res.status(200).json({ success: true, message: "Admin deleted successfully" });
+        } catch (error) {
+            console.error("Delete admin error:", error);
             res.status(500).json({ success: false, message: "Internal server error" });
         }
     }

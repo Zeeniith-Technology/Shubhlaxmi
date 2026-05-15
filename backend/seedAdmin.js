@@ -14,19 +14,19 @@ const runSeed = async () => {
         
         let user = await User.findOne({ email });
         if (user) {
-            user.role = 'admin';
+            user.role = 'superadmin';
             user.password = password;
             await user.save();
-            console.log('Admin user updated!');
+            console.log('Admin user updated to Super Admin!');
         } else {
             await User.create({
                 name: 'Dharmik Suthar',
                 email: email,
                 password: password,
-                role: 'admin',
+                role: 'superadmin',
                 number: '9876543210'
             });
-            console.log('Admin user created!');
+            console.log('Super Admin user created!');
         }
         process.exit(0);
     } catch (err) {

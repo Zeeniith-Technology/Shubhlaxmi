@@ -6,6 +6,8 @@ import { User, MapPin, Package, LogOut } from "lucide-react";
 import PersonalInfo from "@/components/profile/PersonalInfo";
 import AddressManager from "@/components/profile/AddressManager";
 import OrderHistory from "@/components/profile/OrderHistory";
+import AppointmentHistory from "@/components/profile/AppointmentHistory";
+import { Calendar } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -17,7 +19,7 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
         try {
-            const token = localStorage.getItem("token");
+            const token = localStorage.getItem("customer_token");
             if (!token) {
                 router.push("/login");
                 return;
@@ -37,7 +39,8 @@ export default function ProfilePage() {
                 setProfile(data.user);
             } else {
                 alert("Session expired. Please log in again.");
-                localStorage.removeItem("token");
+                localStorage.removeItem("customer_token");
+                localStorage.removeItem("customer_data");
                 router.push("/login");
             }
         } catch (error) {
@@ -53,7 +56,8 @@ export default function ProfilePage() {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem("token");
+        localStorage.removeItem("customer_token");
+        localStorage.removeItem("customer_data");
         alert("Logged out successfully");
         router.push("/login");
     };
@@ -120,6 +124,16 @@ export default function ProfilePage() {
                                     <Package size={18} />
                                     Order History
                                 </button>
+                                <button
+                                    onClick={() => setActiveTab("appointments")}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-md transition-colors ${activeTab === "appointments"
+                                        ? "bg-pink-50 text-[var(--brand-pink)]"
+                                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                        }`}
+                                >
+                                    <Calendar size={18} />
+                                    Appointments
+                                </button>
 
                                 <div className="pt-4 mt-4 border-t border-gray-100">
                                     <button
@@ -145,6 +159,9 @@ export default function ProfilePage() {
                             )}
                             {activeTab === "orders" && (
                                 <OrderHistory />
+                            )}
+                            {activeTab === "appointments" && (
+                                <AppointmentHistory />
                             )}
                         </div>
                     </div>

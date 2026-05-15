@@ -22,4 +22,20 @@ const auth = (req, res, next) => {
     }
 };
 
+export const requireRole = (allowedRoles) => {
+    return (req, res, next) => {
+        auth(req, res, () => {
+            if (req.user && allowedRoles.includes(req.user.role)) {
+                next();
+            } else {
+                return res.status(403).json({ success: false, message: `Forbidden: Requires role(s) ${allowedRoles.join(', ')}` });
+            }
+        });
+    };
+};
+
+export const requireSuperAdmin = requireRole(['superadmin']);
+export const requireAdmin = requireRole(['admin', 'superadmin']);
+
+export { auth };
 export default auth;

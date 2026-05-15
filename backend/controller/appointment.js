@@ -126,6 +126,32 @@ class AppointmentController {
             next();
         }
     }
+
+
+    // 5. Get My Appointments (Customer)
+    async getMyAppointments(req, res, next) {
+        try {
+            await db.checkTableExists('tblappointments', appointmentSchema);
+            const query = {
+                $or: [
+                    { email: req.user.email }
+                ]
+            };
+            if (req.user.phone) {
+                query.$or.push({ phone: req.user.phone });
+            }
+
+            const data = await db.fetchdata(query, 'tblappointments', appointmentSchema);
+            
+            // Sort by date descending (assuming simple string sort works for YYYY-MM-DD or similar)
+            data.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            return res.status(200).json({ success: true, appointments: data });
+        } catch (error) {
+            console.error("Get My Appointments error:", error);
+            return res.status(500).json({ success: false, message: "Internal server error" });
+        }
+    }
 }
 
 export default new AppointmentController();

@@ -1,8 +1,18 @@
 import User from '../schema/user.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER || 'your-email@gmail.com',
+        pass: process.env.EMAIL_PASS || 'your-email-password'
+    }
+});
 
 export const register = async (req, res) => {
     try {
@@ -256,5 +266,77 @@ export const toggleWishlist = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to update wishlist', error: error.message });
+    }
+};
+
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) return res.status(404).json({ success: false, message: 'No account with that email found' });
+
+        // Generate token
+        const resetToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit token
+        
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+
+        await user.save();
+
+        try {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: user.email,
+                subject: 'Shubhlaxmi - Password Reset Request',
+                text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n
+Your password reset token is: ${resetToken}\n\n
+If you did not request this, please ignore this email and your password will remain unchanged.\n`
+            });
+
+            res.status(200).json({ success: true, message: 'An email has been sent to ' + user.email + ' with further instructions.' });
+        } catch (emailErr) {
+            console.error("Error sending reset email:", emailErr);
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            await user.save();
+            return res.status(500).json({ success: false, message: 'Error sending email. Please try again later.' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to process forgot password', error: error.message });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { email, token, newPassword } = req.body;
+        
+        if (!email || !token || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Email, token, and new password are required' });
+        }
+
+        const cleanToken = token.trim();
+        
+        const user = await User.findOne({
+            email: email.toLowerCase(),
+            resetPasswordToken: cleanToken,
+            resetPasswordExpires: { $gt: new Date() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'Password reset token is invalid or has expired.' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        res.status(200).json({ success: true, message: 'Your password has been successfully reset. Please log in.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to reset password', error: error.message });
     }
 };
