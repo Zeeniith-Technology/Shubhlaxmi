@@ -5,6 +5,9 @@ import { cloudinary, deleteImage } from '../config/cloudinary.js';
 import mongoose from 'mongoose';
 
 const toObjectId = (id) => {
+    if (id && typeof id === 'object' && id._id) {
+        id = id._id;
+    }
     try { return new mongoose.Types.ObjectId(String(id)); } catch { return id; }
 };
 
@@ -192,9 +195,11 @@ class ProductController {
     async listproduct(req, res, next) {
         try {
             await db.checkTableExists('tblproducts', productSchema);
-            const { categoryId, sectionId, minPrice, maxPrice, sort, search, ids, ...rest } = req.body || {};
+            const { categoryId, sectionId, minPrice, maxPrice, sort, search, ids, slug, ...rest } = req.body || {};
 
             let filter = {}; // Do NOT spread rest — it can introduce invalid Mongo fields
+
+            if (slug) filter.slug = slug;
 
             // Cast IDs to ObjectId so aggregation $match works correctly
             if (categoryId) filter.categoryId = toObjectId(categoryId);

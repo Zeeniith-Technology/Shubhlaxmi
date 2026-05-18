@@ -90,14 +90,20 @@ export default function DiscountsPage() {
         setShowForm(false);
     };
 
+    const formatForInput = (dateStr: string) => {
+        const d = new Date(dateStr);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+    };
+
     const openEdit = (d: any) => {
         setName(d.name);
         setTargetType(d.targetType);
         setTargetIds(d.targetIds || []);
         setDiscountType(d.discountType);
         setValue(String(d.value));
-        setStartDate(new Date(d.startDate).toISOString().slice(0, 16));
-        setEndDate(new Date(d.endDate).toISOString().slice(0, 16));
+        setStartDate(formatForInput(d.startDate));
+        setEndDate(formatForInput(d.endDate));
         setIsActive(d.isActive);
         setEditId(d._id);
         setShowForm(true);
@@ -108,15 +114,12 @@ export default function DiscountsPage() {
         setLoading(true);
 
         const url = editId ? `${API_BASE}/discount/update` : `${API_BASE}/discount/add`;
-        const body = {
+        const payload = {
             id: editId,
-            name,
-            targetType,
-            targetIds,
-            discountType,
+            name, targetType, targetIds, discountType,
             value: Number(value),
-            startDate,
-            endDate,
+            startDate: new Date(startDate).toISOString(),
+            endDate: new Date(endDate).toISOString(),
             isActive
         };
 
@@ -124,7 +127,7 @@ export default function DiscountsPage() {
             const res = await fetch(url, {
                 method: "POST",
                 headers: headers(),
-                body: JSON.stringify(body)
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (data.success) {
