@@ -22,7 +22,18 @@ const storage = new CloudinaryStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15MB hard limit (images should be compressed client-side first)
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+        if (allowed.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only JPG, PNG, WebP, and AVIF images are allowed'), false);
+        }
+    }
+});
 
 export const deleteImage = async (publicId) => {
     try {

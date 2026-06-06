@@ -5,6 +5,50 @@ import CustomSelect from "../components/CustomSelect";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+// Compresses an image File to under maxSizeMB and maxDimension px using canvas
+const compressImage = (file: File, maxDimension = 2500, maxSizeMB = 10): Promise<File> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target?.result as string;
+            img.onload = () => {
+                let { width, height } = img;
+                // Scale down if too large
+                if (width > maxDimension || height > maxDimension) {
+                    const ratio = Math.min(maxDimension / width, maxDimension / height);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d')!;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Try progressively lower quality until under size limit
+                let quality = 0.92;
+                const tryCompress = () => {
+                    canvas.toBlob((blob) => {
+                        if (!blob) { resolve(file); return; }
+                        if (blob.size > maxSizeMB * 1024 * 1024 && quality > 0.6) {
+                            quality -= 0.05;
+                            tryCompress();
+                        } else {
+                            // Keep original extension as jpeg for compressed output
+                            const ext = file.type === 'image/png' ? 'png' : 'jpeg';
+                            const compressed = new File([blob], file.name.replace(/\.[^.]+$/, `.${ext}`), { type: `image/${ext}` });
+                            resolve(compressed);
+                        }
+                    }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', quality);
+                };
+                tryCompress();
+            };
+        };
+    });
+};
+
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<any[]>([]);
     const [sections, setSections] = useState<any[]>([]);
@@ -80,7 +124,10 @@ export default function CategoriesPage() {
         formData.append('name', name);
         formData.append('sectionId', sectionId);
         if (parentCategoryId) formData.append('parentCategoryId', parentCategoryId);
-        if (categoryImage) formData.append('image', categoryImage);
+        if (categoryImage) {
+            const compressed = await compressImage(categoryImage);
+            formData.append('image', compressed);
+        }
         try {
             const res = await fetch(`${API_BASE}/category/add`, { method: "POST", headers: { "Authorization": `Bearer ${getToken()}` }, body: formData });
             const data = await res.json();
@@ -99,7 +146,10 @@ export default function CategoriesPage() {
         formData.append('name', editName);
         if (editSectionId) formData.append('sectionId', editSectionId);
         if (editParentId) formData.append('parentCategoryId', editParentId);
-        if (editImage) formData.append('image', editImage);
+        if (editImage) {
+            const compressed = await compressImage(editImage);
+            formData.append('image', compressed);
+        }
         try {
             const res = await fetch(`${API_BASE}/category/update`, { method: "POST", headers: { "Authorization": `Bearer ${getToken()}` }, body: formData });
             const data = await res.json();
@@ -138,9 +188,12 @@ export default function CategoriesPage() {
             const formData = new FormData();
             const itemsData = valid.map(i => ({ name: i.name, sectionId: i.sectionId, ...(i.parentCategoryId ? { parentCategoryId: i.parentCategoryId } : {}) }));
             formData.append('items', JSON.stringify(itemsData));
-            valid.forEach((item, i) => {
-                if (item.image) formData.append(`image_${i}`, item.image);
-            });
+            for (let i = 0; i < valid.length; i++) {
+                if (valid[i].image) {
+                    const compressed = await compressImage(valid[i].image as File);
+                    formData.append(`image_${i}`, compressed);
+                }
+            }
 
             const res = await fetch(`${API_BASE}/category/bulkadd`, {
                 method: "POST", headers: { "Authorization": `Bearer ${getToken()}` },
@@ -165,9 +218,12 @@ export default function CategoriesPage() {
             const formData = new FormData();
             const itemsData = bulkEditItems.map(i => ({ id: i.id, name: i.name }));
             formData.append('items', JSON.stringify(itemsData));
-            bulkEditItems.forEach((item, i) => {
-                if (item.image) formData.append(`image_${i}`, item.image);
-            });
+            for (let i = 0; i < bulkEditItems.length; i++) {
+                if (bulkEditItems[i].image) {
+                    const compressed = await compressImage(bulkEditItems[i].image as File);
+                    formData.append(`image_${i}`, compressed);
+                }
+            }
 
             const res = await fetch(`${API_BASE}/category/bulkupdate`, { method: "POST", headers: { "Authorization": `Bearer ${getToken()}` }, body: formData });
             const data = await res.json();
@@ -305,7 +361,7 @@ export default function CategoriesPage() {
                             style={{ border: `2px dashed ${addDragActive ? '#ec268f' : '#d1d5db'}`, borderRadius: 8, padding: '20px 16px', textAlign: 'center', cursor: 'pointer', background: addDragActive ? '#fdf2f8' : '#fafafa', transition: 'all .2s' }}>
                             <div style={{ fontSize: 28, marginBottom: 6 }}>🖼️</div>
                             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#374151' }}>Drop image here or <span style={{ color: '#ec268f' }}>click to browse</span></p>
-                            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9ca3af' }}>JPG, PNG, WebP, AVIF — max 5 MB</p>
+                            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9ca3af' }}>JPG, PNG, WebP, AVIF — auto-compressed before upload</p>
                         </div>
                     )}
                     <input ref={addFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" style={{ display: 'none' }} onChange={e => setCategoryImage(e.target.files?.[0] || null)} />
