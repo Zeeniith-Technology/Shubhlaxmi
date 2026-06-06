@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import imageCompression from "browser-image-compression";
+import { compressImage } from "../../utils/compressImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -99,21 +99,8 @@ export default function BannersPage() {
         formData.append("isActive", String(isActive));
 
         try {
-            const compressionOptions = {
-                maxSizeMB: 0.5, // 500kb max
-                maxWidthOrHeight: 1920,
-                useWebWorker: true
-            };
-
-            let compressedDesktop = desktopImage;
-            if (desktopImage && !editId) {
-                try { compressedDesktop = await imageCompression(desktopImage, compressionOptions); } catch (e) { console.error("Desktop compression failed", e); }
-            }
-
-            let compressedMobile = mobileImage;
-            if (mobileImage && !editId) {
-                try { compressedMobile = await imageCompression(mobileImage, { ...compressionOptions, maxWidthOrHeight: 1200 }); } catch (e) { console.error("Mobile compression failed", e); }
-            }
+            const compressedDesktop = desktopImage ? await compressImage(desktopImage) : null;
+            const compressedMobile = mobileImage ? await compressImage(mobileImage) : null;
 
             if (compressedDesktop) formData.append("desktopImage", compressedDesktop);
             if (compressedMobile) formData.append("mobileImage", compressedMobile);

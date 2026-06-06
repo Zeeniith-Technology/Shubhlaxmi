@@ -2,52 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import CustomSelect from "../components/CustomSelect";
+import { compressImage } from "../../utils/compressImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// Compresses an image File to under maxSizeMB and maxDimension px using canvas
-const compressImage = (file: File, maxDimension = 2500, maxSizeMB = 10): Promise<File> => {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (e) => {
-            const img = new Image();
-            img.src = e.target?.result as string;
-            img.onload = () => {
-                let { width, height } = img;
-                // Scale down if too large
-                if (width > maxDimension || height > maxDimension) {
-                    const ratio = Math.min(maxDimension / width, maxDimension / height);
-                    width = Math.round(width * ratio);
-                    height = Math.round(height * ratio);
-                }
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d')!;
-                ctx.drawImage(img, 0, 0, width, height);
 
-                // Try progressively lower quality until under size limit
-                let quality = 0.92;
-                const tryCompress = () => {
-                    canvas.toBlob((blob) => {
-                        if (!blob) { resolve(file); return; }
-                        if (blob.size > maxSizeMB * 1024 * 1024 && quality > 0.6) {
-                            quality -= 0.05;
-                            tryCompress();
-                        } else {
-                            // Keep original extension as jpeg for compressed output
-                            const ext = file.type === 'image/png' ? 'png' : 'jpeg';
-                            const compressed = new File([blob], file.name.replace(/\.[^.]+$/, `.${ext}`), { type: `image/${ext}` });
-                            resolve(compressed);
-                        }
-                    }, file.type === 'image/png' ? 'image/png' : 'image/jpeg', quality);
-                };
-                tryCompress();
-            };
-        };
-    });
-};
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<any[]>([]);

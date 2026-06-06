@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import CustomSelect from "../components/CustomSelect";
+import { compressImage } from "../../utils/compressImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -134,7 +135,12 @@ export default function ProductsPage() {
         formData.append("seo", JSON.stringify(seo));
 
         if (editId) formData.append("id", editId);
-        if (images) { for (let i = 0; i < images.length; i++) formData.append("images", images[i]); }
+        if (images) {
+            for (let i = 0; i < images.length; i++) {
+                const compressed = await compressImage(images[i]);
+                formData.append("images", compressed);
+            }
+        }
         try {
             const url = editId ? `${API_BASE}/product/update` : `${API_BASE}/product/add`;
             const res = await fetch(url, { method: "POST", headers: { "Authorization": `Bearer ${getToken()}` }, body: formData });

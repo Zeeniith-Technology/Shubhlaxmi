@@ -4,6 +4,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { compressImage } from "../../utils/compressImage";
 
 // ── Inline notification modal ──────────────────────────────
 function NotifModal({ msg, onClose }: { msg: { text: string; type: "success" | "error" } | null; onClose: () => void }) {
@@ -179,7 +180,8 @@ export default function SpecialCollectionsPage() {
             data.append("isActive", formData.isActive.toString());
 
             if (formData.image) {
-                data.append("image", formData.image);
+                const compressed = await compressImage(formData.image);
+                data.append("image", compressed);
             }
             if (editingCol) {
                 data.append("id", editingCol._id);
