@@ -7,6 +7,7 @@ import { ChevronRight, Globe, ShieldCheck, CreditCard, Truck, MessageCircle, Min
 import StorefrontCustomSelect from "../../../components/storefront/StorefrontCustomSelect";
 import { useCart } from "../../../context/CartContext";
 import { useCurrency } from "../../../context/CurrencyContext";
+import { useStoreSettings } from "../../../context/StoreSettingsContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -15,6 +16,7 @@ export default function ProductDetailsPage() {
     const router = useRouter();
     const { addToCart } = useCart();
     const { formatPrice } = useCurrency();
+    const { settings } = useStoreSettings();
     const [product, setProduct] = useState<any>(null);
     const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -107,7 +109,16 @@ export default function ProductDetailsPage() {
 
     const handleBuyNow = () => {
         handleAddToCart();
-        router.push("/checkout");
+        if (settings.whatsappCheckoutEnabled && settings.whatsappNumber) {
+            // Open WhatsApp with the single product order
+            const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
+            const itemLine = `- ${quantity}x ${product.title} (${formatPrice(product.price * quantity)})`;
+            const message = `Hello Shubhlaxmi, I would like to order:%0A%0A*Item:*%0A${itemLine}%0A%0A*Total:* ${formatPrice(product.price * quantity)}%0A%0ACheckout Link: ${siteUrl}/checkout%0A%0APlease let me know how to proceed with payment and shipping.`;
+            const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
+            window.open(whatsappUrl, '_blank');
+        } else {
+            router.push("/checkout");
+        }
     };
 
     const toggleAccordion = (id: string) => {
@@ -284,9 +295,14 @@ export default function ProductDetailsPage() {
                             <button
                                 onClick={handleBuyNow}
                                 disabled={product.stock <= 0}
-                                className="w-full py-[18px] bg-[var(--brand-pink)] text-white font-semibold tracking-[0.2em] uppercase text-xs hover:bg-[#d61b7f] transition-all disabled:opacity-50"
+                                className={`w-full py-[18px] font-semibold tracking-[0.2em] uppercase text-xs transition-all disabled:opacity-50 ${
+                                    settings.whatsappCheckoutEnabled
+                                        ? 'bg-[#25D366] text-white hover:bg-[#128C7E]'
+                                        : 'bg-[var(--brand-pink)] text-white hover:bg-[#d61b7f]'
+                                }`}
                             >
-                                Buy It Now
+                                {settings.whatsappCheckoutEnabled ? '🛒 Order via WhatsApp' : 'Buy It Now'}
+
                             </button>
                             <div className="flex flex-col items-center mt-6">
                                 <div className="flex items-center gap-5">

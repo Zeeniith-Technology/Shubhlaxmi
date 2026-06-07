@@ -147,8 +147,9 @@ export default function CartDrawer() {
                                     onClick={() => {
                                         setIsCartOpen(false);
                                         
+                                        const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://shubhlaxmi.com';
                                         const itemsList = cart.map(item => `- ${item.quantity}x ${item.product.title} (${formatPrice(item.product.price * item.quantity)})`).join('%0A');
-                                        const message = `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}%0A%0A*Total Amount:* ${formatPrice(cartTotal)}%0A%0APlease let me know how to proceed with payment and shipping.`;
+                                        const message = `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}%0A%0A*Total Amount:* ${formatPrice(cartTotal)}%0A%0ACheckout Link: ${siteUrl}/checkout%0A%0APlease let me know how to proceed with payment and shipping.`;
                                         
                                         const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
                                         window.open(whatsappUrl, '_blank');
