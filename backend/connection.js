@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 export default async function connectdb() {
     const mongoUrl = process.env.MONGO_URL;
-    
+    console.log(mongoUrl)
     if (!mongoUrl) {
         console.error("FATAL: MONGO_URL environment variable is not set! Check Render's Environment Variables.");
         return;
@@ -16,4 +16,4 @@ export default async function connectdb() {
     } catch (err) {
         console.error("❌ Error connecting to MongoDB:", err.message);
     }
-}
+}

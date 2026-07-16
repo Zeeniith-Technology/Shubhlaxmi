@@ -1,8 +1,12 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import db from '../method.js';
 import loginSchema from '../schema/login.js';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
+
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 
 // Configure Nodemailer securely (in production, use real environment variables)
 const transporter = nodemailer.createTransport({
@@ -26,23 +30,28 @@ class LoginController {
                 return res.status(400).json({ success: false, message: "Email is required." });
             }
 
-            // Generate 4 digit OTP
-            const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+            // Cryptographically random 6-digit OTP
+            const otpCode = crypto.randomInt(100000, 1000000).toString();
 
             // OTP expires in 10 minutes
             const expiresAt = new Date();
             expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+            const now = new Date();
 
             // Check if user exists
             const existingUsers = await db.fetchdata({ email }, 'tblusers', loginSchema);
-            let role = 'user';
 
             if (existingUsers.length > 0) {
-                role = existingUsers[0].role;
-                // User exists -> Update their OTP
+                // Throttle resends to one per minute
+                const lastSentAt = existingUsers[0].otp?.lastSentAt;
+                if (lastSentAt && (now - new Date(lastSentAt)) < OTP_RESEND_COOLDOWN_MS) {
+                    return res.status(429).json({ success: false, message: "Please wait a minute before requesting another OTP." });
+                }
+
+                // User exists -> Update their OTP (attempts reset for the new code)
                 await db.executdata('tblusers', loginSchema, 'u', {
                     condition: { email },
-                    update: { 'otp.code': otpCode, 'otp.expiresAt': expiresAt }
+                    update: { 'otp.code': otpCode, 'otp.expiresAt': expiresAt, 'otp.attempts': 0, 'otp.lastSentAt': now }
                 });
             } else {
                 // New User -> Insert
@@ -55,24 +64,21 @@ class LoginController {
                     number: number || '',
                     name,
                     role: 'user',
-                    otp: { code: otpCode, expiresAt }
+                    otp: { code: otpCode, expiresAt, attempts: 0, lastSentAt: now }
                 };
                 await db.executdata('tblusers', loginSchema, 'i', newUser);
             }
-
-            // Send Email Notification for normal users và admins
 
             try {
                 await transporter.sendMail({
                     from: process.env.EMAIL_USER,
                     to: email,
                     subject: 'Your Shubhlaxmi Login OTP',
-                    text: `Your 4-digit OTP is: ${otpCode}. It will expire in 10 minutes.`
+                    text: `Your 6-digit OTP is: ${otpCode}. It will expire in 10 minutes.`
                 });
-                console.log(`[USER LOGIN] OTP sent to email ${email}: ${otpCode}`);
             } catch (emailError) {
-                console.error("Failed to send OTP email:", emailError);
-                // We still proceed even if email fails in Dev, but in prod you might want to return an error
+                console.error("Failed to send OTP email:", emailError.message);
+                return res.status(500).json({ success: false, message: "Failed to send OTP email. Please try again." });
             }
 
             return res.status(200).json({
@@ -106,9 +112,8 @@ class LoginController {
 
             const user = users[0];
 
-            // Validate OTP
-            if (!user.otp || user.otp.code !== otp) {
-                return res.status(401).json({ success: false, message: "Invalid OTP." });
+            if (!user.otp || !user.otp.code) {
+                return res.status(401).json({ success: false, message: "No OTP requested. Please request a new one." });
             }
 
             // Check if OTP is expired
@@ -116,16 +121,34 @@ class LoginController {
                 return res.status(401).json({ success: false, message: "OTP has expired." });
             }
 
+            // Lock out after too many wrong guesses (brute-force protection)
+            if ((user.otp.attempts || 0) >= OTP_MAX_ATTEMPTS) {
+                await db.executdata('tblusers', loginSchema, 'u', {
+                    condition: { email },
+                    update: { 'otp.code': null, 'otp.expiresAt': null, 'otp.attempts': 0 }
+                });
+                return res.status(429).json({ success: false, message: "Too many incorrect attempts. Please request a new OTP." });
+            }
+
+            // Validate OTP
+            if (user.otp.code !== String(otp).trim()) {
+                await db.executdata('tblusers', loginSchema, 'u', {
+                    condition: { email },
+                    update: { 'otp.attempts': (user.otp.attempts || 0) + 1 }
+                });
+                return res.status(401).json({ success: false, message: "Invalid OTP." });
+            }
+
             // Clear the OTP so it can't be reused
-            await db.executdata('users', loginSchema, 'u', {
+            await db.executdata('tblusers', loginSchema, 'u', {
                 condition: { email },
-                update: { 'otp.code': null, 'otp.expiresAt': null }
+                update: { 'otp.code': null, 'otp.expiresAt': null, 'otp.attempts': 0 }
             });
 
             // Generate JWT Token (Valid for 20 days as requested)
             const token = jwt.sign(
                 { id: user._id, role: user.role },
-                process.env.JWT_SECRET || 'fallback_secret_key',
+                process.env.JWT_SECRET,
                 { expiresIn: '20d' }
             );
 
@@ -161,28 +184,6 @@ class LoginController {
                 return res.status(400).json({ success: false, message: "Email and password are required." });
             }
 
-            // --- SUPER ADMIN BYPASS ---
-            if ((email === 'dharmiksuthar0509@gmail.com' || email === 'dharmiksuthar05059@gmail.com') && password === 'Admin@123') {
-                // Fetch the actual seeded user to get a valid ObjectId so the rest of the panel works
-                const superAdminUsers = await db.fetchdata({ email: 'dharmiksuthar0509@gmail.com' }, 'tblusers', loginSchema);
-                if (superAdminUsers.length > 0) {
-                    const sa = superAdminUsers[0];
-                    const token = jwt.sign(
-                        { id: sa._id, role: 'admin' },
-                        process.env.JWT_SECRET || 'fallback_secret_key',
-                        { expiresIn: '20d' }
-                    );
-
-                    return res.status(200).json({
-                        success: true,
-                        message: "Superadmin login successful",
-                        token,
-                        user: { id: sa._id, name: sa.name, email: email, role: 'admin' }
-                    });
-                }
-            }
-            // --------------------------
-
             const users = await db.fetchdata({ email }, 'tblusers', loginSchema);
             if (users.length === 0) {
                 return res.status(404).json({ success: false, message: "User not found." });
@@ -205,7 +206,7 @@ class LoginController {
 
             const token = jwt.sign(
                 { id: user._id, role: user.role },
-                process.env.JWT_SECRET || 'fallback_secret_key',
+                process.env.JWT_SECRET,
                 { expiresIn: '20d' }
             );
 
@@ -257,7 +258,7 @@ class LoginController {
 
             const token = jwt.sign(
                 { id: user._id, role: user.role },
-                process.env.JWT_SECRET || 'fallback_secret_key',
+                process.env.JWT_SECRET,
                 { expiresIn: '20d' }
             );
 

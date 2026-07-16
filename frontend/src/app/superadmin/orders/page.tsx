@@ -10,9 +10,10 @@ type OrderItem = {
     productId: string;
     quantity: number;
     price: number;
+    selectedOptions?: Record<string, string>;
     product: {
         title: string;
-        images: string[];
+        images: (string | { url: string })[];
     };
 };
 
@@ -86,13 +87,26 @@ export default function AdminOrders() {
     const handleUpdateStatus = async (id: string, newStatus: string) => {
         try {
             const token = localStorage.getItem("superadmin_token");
+
+            // Capture tracking details when marking as shipped (emailed to the customer)
+            const payload: Record<string, string> = { id, status: newStatus };
+            if (newStatus === "Shipped") {
+                const trackingNumber = window.prompt("Tracking number (optional — will be emailed to the customer):", "");
+                if (trackingNumber === null) return; // admin cancelled
+                if (trackingNumber.trim()) {
+                    payload.trackingNumber = trackingNumber.trim();
+                    const courierName = window.prompt("Courier name (optional):", "");
+                    if (courierName && courierName.trim()) payload.courierName = courierName.trim();
+                }
+            }
+
             const res = await fetch(`${API_BASE}/order/update-status`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ id, status: newStatus })
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
@@ -346,21 +360,32 @@ export default function AdminOrders() {
                                                             {order.items.map((item, index) => (
                                                                 <div key={index} className="bg-white border border-gray-200 p-3 rounded-lg shadow-sm flex gap-4 items-center hover:border-[var(--brand-pink)] transition-colors">
                                                                     <div className="w-16 h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 relative border border-gray-50">
-                                                                        {item.product?.images?.[0] ? (
-                                                                            <Image 
-                                                                                src={item.product.images[0].startsWith('http') ? item.product.images[0] : `${API_BASE.replace('/api', '')}${item.product.images[0]}`} 
-                                                                                alt={item.product.title || "Product"} 
-                                                                                fill 
-                                                                                className="object-cover" 
-                                                                            />
-                                                                        ) : (
-                                                                            <span className="text-[10px] text-gray-400 flex items-center justify-center h-full w-full text-center p-1">No Image</span>
-                                                                        )}
+                                                                        {(() => {
+                                                                            const img = item.product?.images?.[0];
+                                                                            const imgUrl = typeof img === 'string' ? img : img?.url;
+                                                                            return imgUrl ? (
+                                                                                <Image
+                                                                                    src={imgUrl.startsWith('http') ? imgUrl : `${API_BASE.replace('/api', '')}${imgUrl}`}
+                                                                                    alt={item.product?.title || "Product"}
+                                                                                    fill
+                                                                                    className="object-cover"
+                                                                                />
+                                                                            ) : (
+                                                                                <span className="text-[10px] text-gray-400 flex items-center justify-center h-full w-full text-center p-1">No Image</span>
+                                                                            );
+                                                                        })()}
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <h5 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-2" title={item.product?.title || "Unknown Product"}>
                                                                             {item.product?.title || "Unknown Product"}
                                                                         </h5>
+                                                                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                                                                            <div className="mb-2 space-y-0.5">
+                                                                                {Object.entries(item.selectedOptions).map(([key, value]) => (
+                                                                                    <p key={key} className="text-[11px] text-gray-500">{key}: <strong className="text-gray-800 font-medium">{String(value)}</strong></p>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
                                                                         <div className="flex items-center justify-between">
                                                                             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Qty: <strong className="text-gray-900">{item.quantity}</strong></span>
                                                                             <span className="text-sm font-bold text-[var(--brand-pink)]">₹{item.price.toLocaleString('en-IN')}</span>

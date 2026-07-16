@@ -5,7 +5,18 @@ class DiscountController {
 
     async addDiscount(req, res, next) {
         try {
-            const { name, targetType, targetIds, discountType, value, startDate, endDate, isActive } = req.body;
+            const { name, targetType, targetIds, discountType, value, startDate, endDate, isActive, couponCode } = req.body;
+
+            // Coupon code (optional) must be unique among discounts
+            const normalizedCoupon = couponCode ? String(couponCode).trim().toUpperCase() : null;
+            if (normalizedCoupon) {
+                await db.checkTableExists('tbldiscounts', discountSchema);
+                const dupes = await db.fetchdata({ couponCode: normalizedCoupon }, 'tbldiscounts', discountSchema);
+                if (dupes.length > 0) {
+                    req.api_error = { statusCode: 400, message: `Coupon code "${normalizedCoupon}" is already in use` };
+                    return next();
+                }
+            }
             
             // Required field check
             if (!name || !name.trim() || !targetType || !discountType || value === undefined || !startDate || !endDate) {
@@ -48,6 +59,7 @@ class DiscountController {
                 name: name.trim(),
                 targetType,
                 targetIds: validatedTargetIds,
+                couponCode: normalizedCoupon,
                 discountType,
                 value: numValue,
                 startDate: start,
@@ -68,7 +80,11 @@ class DiscountController {
     async listDiscounts(req, res, next) {
         try {
             await db.checkTableExists('tbldiscounts', discountSchema);
-            const data = await db.fetchdata(req.body || {}, 'tbldiscounts', discountSchema);
+            // Whitelist filters instead of passing the raw body into Mongo
+            const filter = {};
+            if (req.body?.isActive !== undefined) filter.isActive = req.body.isActive;
+            if (req.body?.targetType) filter.targetType = req.body.targetType;
+            const data = await db.fetchdata(filter, 'tbldiscounts', discountSchema);
             req.api_data = data;
             next();
         } catch (error) {
@@ -126,6 +142,19 @@ class DiscountController {
             if (discountType) updateFields.discountType = discountType;
             if (targetType) updateFields.targetType = targetType;
             if (targetIds !== undefined) updateFields.targetIds = Array.isArray(targetIds) ? targetIds : [];
+
+            // Coupon code update (empty string clears it; must stay unique)
+            if (updateFields.couponCode !== undefined || req.body.couponCode !== undefined) {
+                const normalizedCoupon = req.body.couponCode ? String(req.body.couponCode).trim().toUpperCase() : null;
+                if (normalizedCoupon) {
+                    const dupes = await db.fetchdata({ couponCode: normalizedCoupon, _id: { $ne: id } }, 'tbldiscounts', discountSchema);
+                    if (dupes.length > 0) {
+                        req.api_error = { statusCode: 400, message: `Coupon code "${normalizedCoupon}" is already in use` };
+                        return next();
+                    }
+                }
+                updateFields.couponCode = normalizedCoupon;
+            }
 
             await db.checkTableExists('tbldiscounts', discountSchema);
             const result = await db.executdata('tbldiscounts', discountSchema, 'u', {

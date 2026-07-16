@@ -12,7 +12,7 @@ const auth = (req, res, next) => {
             return res.status(401).json({ success: false, message: "Authentication required. Malformed token." });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded; // attach user payload to request
 
         next();

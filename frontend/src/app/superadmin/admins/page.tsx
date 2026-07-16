@@ -11,6 +11,7 @@ export default function AdminManagementPage() {
     const [admins, setAdmins] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,6 +58,7 @@ export default function AdminManagementPage() {
                     router.push("/superadmin"); // Kick out non-superadmins
                     return;
                 }
+                setCurrentUserId(adminData.id || adminData._id || null);
             } catch (e) { }
         } else {
             router.push("/superadmin/login");
@@ -195,13 +197,17 @@ export default function AdminManagementPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => handleDelete(admin._id)}
-                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Delete Admin"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        {currentUserId && (admin._id === currentUserId) ? (
+                                            <span className="text-xs text-gray-400 italic pr-2" title="You cannot delete your own account">You</span>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleDelete(admin._id)}
+                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Delete Admin"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

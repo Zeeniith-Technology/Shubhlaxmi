@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../schema/user.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const authCustomer = async (req, res, next) => {
     try {

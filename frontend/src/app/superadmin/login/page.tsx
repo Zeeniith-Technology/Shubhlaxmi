@@ -24,6 +24,17 @@ export default function AdminLoginPage() {
                 body: JSON.stringify({ email, password }),
             });
 
+            // A 404/500 often returns an HTML page, which would make res.json() throw
+            // and hide the real cause. Surface the status instead.
+            if (!res.ok && res.status >= 500) {
+                setError(`Server error (${res.status}). Please try again shortly.`);
+                return;
+            }
+            if (res.status === 404) {
+                setError(`Login endpoint not found (404). Check that the API URL is correct and the backend is up to date.`);
+                return;
+            }
+
             const data = await res.json();
             if (data.success) {
                 // Save token to localStorage
@@ -35,7 +46,7 @@ export default function AdminLoginPage() {
                 setError(data.message || "Invalid credentials");
             }
         } catch (err) {
-            setError("Network error. Is the backend running?");
+            setError("Cannot reach the server. Is the backend running on the API URL?");
         } finally {
             setLoading(false);
         }

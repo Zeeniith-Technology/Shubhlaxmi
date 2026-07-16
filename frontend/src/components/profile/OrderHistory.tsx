@@ -2,18 +2,22 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Package, Clock, CheckCircle, CreditCard, Box, MapPin } from "lucide-react";
+import { Package, Clock, CheckCircle, CreditCard, Box, MapPin, Truck, XCircle } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function OrderHistory() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [cancellingId, setCancellingId] = useState<string | null>(null);
 
     const fetchOrders = async () => {
         try {
-            const token = localStorage.getItem("token");
-            if (!token) return;
+            const token = localStorage.getItem("customer_token");
+            if (!token) {
+                setLoading(false);
+                return;
+            }
 
             const res = await fetch(`${API_BASE}/customer/order/history`, {
                 method: "POST",
@@ -25,7 +29,7 @@ export default function OrderHistory() {
             });
 
             const data = await res.json();
-            if (data.status) { // Assuming response comes from responsedata middleware
+            if (data.success) {
                 setOrders(data.data || []);
             }
         } catch (error) {
@@ -38,6 +42,29 @@ export default function OrderHistory() {
     useEffect(() => {
         fetchOrders();
     }, []);
+
+    const handleCancelOrder = async (orderId: string) => {
+        if (!window.confirm("Are you sure you want to cancel this order?")) return;
+        setCancellingId(orderId);
+        try {
+            const token = localStorage.getItem("customer_token");
+            const res = await fetch(`${API_BASE}/customer/order/cancel`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ orderId })
+            });
+            const data = await res.json();
+            alert(data.message || (data.success ? "Order cancelled" : "Failed to cancel order"));
+            if (data.success) fetchOrders();
+        } catch (error) {
+            alert("Network error. Please try again.");
+        } finally {
+            setCancellingId(null);
+        }
+    };
 
     const getStatusColor = (status: string) => {
         switch (status?.toLowerCase()) {
@@ -132,6 +159,13 @@ export default function OrderHistory() {
                                         
                                         <div className="flex-1 min-w-0">
                                             <h4 className="text-gray-900 font-medium truncate">{item.product?.title || 'Unknown Product'}</h4>
+                                            {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                                                <div className="mt-0.5">
+                                                    {Object.entries(item.selectedOptions).map(([key, value]: [string, any]) => (
+                                                        <p key={key} className="text-xs text-gray-500">{key}: <span className="text-gray-700">{String(value)}</span></p>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <p className="text-gray-500 mt-0.5">Qty {item.quantity}</p>
                                         </div>
                                         
@@ -143,6 +177,17 @@ export default function OrderHistory() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* Tracking banner */}
+                        {order.status === 'Shipped' && order.trackingNumber && (
+                            <div className="px-4 sm:px-5 py-3 bg-blue-50 border-t border-blue-100 flex items-center gap-2 text-sm text-blue-800">
+                                <Truck size={16} className="shrink-0" />
+                                <span>
+                                    Tracking: <strong className="font-mono">{order.trackingNumber}</strong>
+                                    {order.courierName && <span className="text-blue-600"> via {order.courierName}</span>}
+                                </span>
+                            </div>
+                        )}
 
                         {/* Footer details */}
                         <div className="p-4 sm:p-5 border-t border-gray-50 bg-white grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -159,14 +204,24 @@ export default function OrderHistory() {
                                     <p className="text-[13px] italic text-gray-400">Unknown destination</p>
                                 )}
                             </div>
-                            
-                            <div className="flex flex-col justify-end items-start sm:items-end mt-4 sm:mt-0">
-                                <div className="text-sm text-gray-500 flex items-center gap-2 mb-1">
-                                    <span>Total Amount</span>
+
+                            <div className="flex flex-col justify-end items-start sm:items-end mt-4 sm:mt-0 gap-2">
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-sm text-gray-500">Total Amount</span>
+                                    <span className="text-lg font-[var(--font-heading)] font-semibold text-[var(--brand-pink)]">
+                                        ₹{order.totalAmount?.toLocaleString()}
+                                    </span>
                                 </div>
-                                <span className="text-lg font-[var(--font-heading)] font-semibold text-[var(--brand-pink)]">
-                                    ₹{order.totalAmount?.toLocaleString()}
-                                </span>
+                                {['Pending', 'Processing'].includes(order.status) && (
+                                    <button
+                                        onClick={() => handleCancelOrder(order._id)}
+                                        disabled={cancellingId === order._id}
+                                        className="inline-flex items-center gap-1.5 text-sm text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded-full px-4 py-1.5 transition-colors disabled:opacity-50"
+                                    >
+                                        <XCircle size={14} />
+                                        {cancellingId === order._id ? "Cancelling..." : "Cancel Order"}
+                                    </button>
+                                )}
                             </div>
                         </div>
                         

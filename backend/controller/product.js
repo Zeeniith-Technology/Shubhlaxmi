@@ -11,6 +11,21 @@ const toObjectId = (id) => {
     try { return new mongoose.Types.ObjectId(String(id)); } catch { return id; }
 };
 
+const slugify = (title) => title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+// Same-title products (common for sarees/lehengas) get -2, -3... suffixes
+// instead of failing with a duplicate-key error.
+const uniqueSlug = async (base, excludeId = null) => {
+    let slug = base;
+    let n = 2;
+    while (true) {
+        const query = excludeId ? { slug, _id: { $ne: excludeId } } : { slug };
+        const existing = await db.fetchdata(query, 'tblproducts', productSchema);
+        if (!existing || existing.length === 0) return slug;
+        slug = `${base}-${n++}`;
+    }
+};
+
 class ProductController {
 
     // 1. Add Product
@@ -38,8 +53,8 @@ class ProductController {
                 return next();
             }
 
-            // Auto-generate slug
-            const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+            // Auto-generate slug (collision-safe)
+            const slug = await uniqueSlug(slugify(title));
 
             // Process uploaded images from Multer/Cloudinary
             let images = [];
@@ -103,11 +118,13 @@ class ProductController {
         if (!products || products.length === 0) return products;
 
         const now = new Date();
-        // Fetch all active discounts that are currently valid
+        // Fetch all active discounts that are currently valid.
+        // Coupon discounts (couponCode set) never auto-apply — customers enter them at checkout.
         const activeDiscounts = await db.fetchdata({
             isActive: true,
             startDate: { $lte: now },
-            endDate: { $gte: now }
+            endDate: { $gte: now },
+            couponCode: { $in: [null, ''] }
         }, 'tbldiscounts', discountSchema);
 
         if (activeDiscounts.length === 0) return products;
@@ -195,9 +212,12 @@ class ProductController {
     async listproduct(req, res, next) {
         try {
             await db.checkTableExists('tblproducts', productSchema);
-            const { categoryId, sectionId, minPrice, maxPrice, sort, search, ids, slug, ...rest } = req.body || {};
+            const { categoryId, sectionId, minPrice, maxPrice, sort, search, ids, slug, page, limit, ...rest } = req.body || {};
 
             let filter = {}; // Do NOT spread rest — it can introduce invalid Mongo fields
+
+            // Storefront requests never see deactivated products
+            if (req.publicOnly) filter.isActive = { $ne: false };
 
             if (slug) filter.slug = slug;
 
@@ -217,7 +237,9 @@ class ProductController {
             }
 
             if (search) {
-                filter.title = { $regex: search, $options: 'i' };
+                // Escape regex metacharacters so searches with ., (, ) etc. don't break
+                const safeSearch = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                filter.title = { $regex: safeSearch, $options: 'i' };
             }
 
             // Sort logic
@@ -262,6 +284,13 @@ class ProductController {
                 { $sort: sortQuery }
             ];
 
+            // Optional pagination — omitted page/limit returns the full list (admin panels rely on this)
+            const limitNum = Math.min(100, parseInt(limit) || 0);
+            if (limitNum > 0) {
+                const pageNum = Math.max(1, parseInt(page) || 1);
+                pipeline.push({ $skip: (pageNum - 1) * limitNum }, { $limit: limitNum });
+            }
+
             const data = await db.fetchdata(filter, 'tblproducts', productSchema, pipeline, true);
             
             // Re-instantiate controller if 'this' is unbound (Express router behavior)
@@ -297,9 +326,9 @@ class ProductController {
                 return next();
             }
 
-            // Auto-generate new slug if title is changing
+            // Auto-generate new slug if title is changing (collision-safe, ignoring this product itself)
             if (req.body.title && !req.body.slug) {
-                req.body.slug = req.body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                req.body.slug = await uniqueSlug(slugify(req.body.title), id);
             }
 
             // Process new uploaded images
@@ -425,7 +454,7 @@ class ProductController {
                         errors.push({ index: i, error: "title, price, sectionId, categoryId required" });
                         continue;
                     }
-                    item.slug = item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                    item.slug = await uniqueSlug(slugify(item.title));
                     item.price = Number(item.price);
                     if (item.compareAtPrice) item.compareAtPrice = Number(item.compareAtPrice);
                     if (item.stock) item.stock = Number(item.stock);
@@ -465,7 +494,7 @@ class ProductController {
                     const { id, ...updateFields } = items[i];
                     if (!id) { errors.push({ index: i, error: "ID missing" }); continue; }
                     if (updateFields.title && !updateFields.slug) {
-                        updateFields.slug = updateFields.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                        updateFields.slug = await uniqueSlug(slugify(updateFields.title), id);
                     }
                     const result = await db.executdata('tblproducts', productSchema, 'u', {
                         condition: { _id: id },

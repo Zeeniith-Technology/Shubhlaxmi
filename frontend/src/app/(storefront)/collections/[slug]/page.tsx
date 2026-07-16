@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SlidersHorizontal, ChevronDown, X, ChevronRight, Heart } from "lucide-react";
@@ -30,6 +30,13 @@ export default function CollectionPage() {
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState<SortOption>("featured");
     const [filterOpen, setFilterOpen] = useState(false);
+
+    // Pagination (Load More)
+    const PAGE_SIZE = 24;
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const productBodyRef = useRef<any>(null);
+    const pageRef = useRef(1);
 
     // Budget Friendly mode
     const isBudgetFriendly = slug === "budget-friendly";
@@ -142,6 +149,10 @@ export default function CollectionPage() {
                 }
 
                 productBody.sort = sortBy;
+                productBody.limit = PAGE_SIZE;
+                productBody.page = 1;
+                productBodyRef.current = productBody;
+                pageRef.current = 1;
 
                 const prodRes = await fetch(`${API_BASE}/public/products`, {
                     method: "POST",
@@ -152,6 +163,7 @@ export default function CollectionPage() {
                 if (prodData.success && prodData.data) {
                     const fetchedProducts = prodData.data;
                     setProducts(fetchedProducts);
+                    setHasMore(fetchedProducts.length === PAGE_SIZE);
 
                     if (fetchedProducts.length > 0 && !isPriceFiltered && !isBudgetFriendly) {
                         setAvailableMin(0);
@@ -182,6 +194,29 @@ export default function CollectionPage() {
         }
         return products;
     })();
+
+    const loadMore = async () => {
+        if (!productBodyRef.current || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            const nextPage = pageRef.current + 1;
+            const res = await fetch(`${API_BASE}/public/products`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...productBodyRef.current, page: nextPage })
+            });
+            const data = await res.json();
+            if (data.success && data.data) {
+                setProducts(prev => [...prev, ...data.data]);
+                setHasMore(data.data.length === PAGE_SIZE);
+                pageRef.current = nextPage;
+            }
+        } catch (e) {
+            console.error("Failed to load more products", e);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     const applyPriceFilter = () => {
         setIsPriceFiltered(true);
@@ -378,6 +413,7 @@ export default function CollectionPage() {
                                     <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 mb-4">
                                         <img
                                             src={product.images?.[0]?.url || 'https://placehold.co/400x530/f3f4f6/a1a1aa?text=No+Image'}
+                                            onError={(e) => { const el = e.currentTarget; const ph = 'https://placehold.co/400x530/f3f4f6/a1a1aa?text=No+Image'; if (el.src !== ph) el.src = ph; }}
                                             alt={product.title}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                         />
@@ -423,6 +459,19 @@ export default function CollectionPage() {
                             </Link>
                         );
                         })}
+                    </div>
+                )}
+
+                {/* Load More */}
+                {hasMore && displayProducts.length > 0 && (
+                    <div className="flex justify-center mt-12">
+                        <button
+                            onClick={loadMore}
+                            disabled={loadingMore}
+                            className="px-10 py-3.5 border-2 border-[var(--brand-pink)] text-[var(--brand-pink)] text-sm font-bold tracking-[0.15em] uppercase hover:bg-[var(--brand-pink)] hover:text-white transition-all disabled:opacity-50 rounded-md"
+                        >
+                            {loadingMore ? "Loading..." : "Load More"}
+                        </button>
                     </div>
                 )}
             </div>

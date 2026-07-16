@@ -21,7 +21,9 @@ const loginSchema = new mongoose.Schema({
     },
     otp: {
         code: { type: String },
-        expiresAt: { type: Date }
+        expiresAt: { type: Date },
+        attempts: { type: Number, default: 0 },
+        lastSentAt: { type: Date }
     },
     role: {
         type: String,

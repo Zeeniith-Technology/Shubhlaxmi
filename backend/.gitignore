@@ -4,5 +4,8 @@
 /test*.js
 *.log
 
+# One-off output of upload2.js (Cloudinary URL from the one-time video
+# upload) — not read by the running app.
+/video_url.txt
 
 /scripts

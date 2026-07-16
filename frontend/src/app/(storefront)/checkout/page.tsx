@@ -22,6 +22,12 @@ export default function CheckoutPage() {
     const [submitting, setSubmitting] = useState(false);
     const [orderComplete, setOrderComplete] = useState(false);
 
+    // Coupon state
+    const [couponInput, setCouponInput] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState<{ couponCode: string; discountAmount: number; totalAmount: number } | null>(null);
+    const [couponError, setCouponError] = useState("");
+    const [applyingCoupon, setApplyingCoupon] = useState(false);
+
     // Form State
     const [address, setAddress] = useState({
         street: "",
@@ -68,6 +74,45 @@ export default function CheckoutPage() {
         setLoading(false);
     }, [cart.length, orderComplete, router]);
 
+    const cartItemsPayload = () => cart.map(item => ({
+        productId: item.product._id,
+        quantity: item.quantity,
+        selectedOptions: item.product.selectedOptions || {}
+    }));
+
+    const handleApplyCoupon = async () => {
+        const code = couponInput.trim().toUpperCase();
+        if (!code) return;
+        setApplyingCoupon(true);
+        setCouponError("");
+        try {
+            const res = await fetch(`${API_BASE}/public/coupon/preview`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ couponCode: code, items: cartItemsPayload() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setAppliedCoupon(data.data);
+            } else {
+                setAppliedCoupon(null);
+                setCouponError(data.message || "Invalid coupon code");
+            }
+        } catch {
+            setCouponError("Network error. Please try again.");
+        } finally {
+            setApplyingCoupon(false);
+        }
+    };
+
+    const removeCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponInput("");
+        setCouponError("");
+    };
+
+    const displayTotal = appliedCoupon ? appliedCoupon.totalAmount : cartTotal;
+
     const handlePlaceOrder = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -75,16 +120,13 @@ export default function CheckoutPage() {
         const token = localStorage.getItem("customer_token");
 
         try {
-            // 1. Prepare Cart Data
+            // 1. Prepare Cart Data — prices are computed server-side; we only
+            // send what was chosen (product, quantity, size/customizations, coupon)
             const orderPayload = {
-                items: cart.map(item => ({
-                    productId: item.product._id,
-                    quantity: item.quantity,
-                    price: item.product.price
-                })),
-                totalAmount: cartTotal,
+                items: cartItemsPayload(),
                 shippingAddress: address,
-                currency: "INR" 
+                currency: "INR",
+                couponCode: appliedCoupon?.couponCode || undefined
             };
 
             // 2. Call backend to create Razorpay Order
@@ -308,7 +350,7 @@ export default function CheckoutPage() {
                                 disabled={submitting}
                                 className="w-full py-4 bg-[var(--brand-pink)] text-white rounded-md text-lg font-bold tracking-widest uppercase disabled:opacity-70"
                             >
-                                {submitting ? "Placing Order..." : `Place Order (${formatPrice(cartTotal)})`}
+                                {submitting ? "Placing Order..." : `Place Order (${formatPrice(displayTotal)})`}
                             </button>
                         </div>
                     </form>
@@ -321,17 +363,58 @@ export default function CheckoutPage() {
 
                         <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 no-scrollbar">
                             {cart.map((item) => (
-                                <div key={item.product._id} className="flex gap-4">
+                                <div key={item.lineId} className="flex gap-4">
                                     <div className="w-16 h-20 bg-white rounded border border-gray-100 overflow-hidden flex-shrink-0">
                                         <img src={item.product.images?.[0]?.url} alt="" className="w-full h-full object-cover" />
                                     </div>
                                     <div className="flex-1 text-sm">
                                         <p className="font-semibold text-gray-800 line-clamp-2">{item.product.title}</p>
+                                        {item.product.selectedOptions && Object.keys(item.product.selectedOptions).length > 0 && (
+                                            <div className="mt-0.5">
+                                                {Object.entries(item.product.selectedOptions).map(([key, value]) => (
+                                                    <p key={key} className="text-xs text-gray-500">{key}: {String(value)}</p>
+                                                ))}
+                                            </div>
+                                        )}
                                         <p className="text-gray-500 mt-1">Qty: {item.quantity}</p>
-                                        <p className="font-semibold text-[var(--brand-pink)] mt-1">{formatPrice(item.product.price * item.quantity)}</p>
+                                        <p className="font-semibold text-[var(--brand-pink)] mt-1">{formatPrice(item.unitPrice * item.quantity)}</p>
                                     </div>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Coupon Code */}
+                        <div className="mb-6 border-t border-gray-200 pt-4">
+                            {appliedCoupon ? (
+                                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md px-3 py-2.5">
+                                    <div className="text-sm">
+                                        <span className="font-bold text-green-700">{appliedCoupon.couponCode}</span>
+                                        <span className="text-green-600 ml-2">−{formatPrice(appliedCoupon.discountAmount)}</span>
+                                    </div>
+                                    <button onClick={removeCoupon} className="text-xs text-red-500 hover:text-red-700 font-semibold uppercase">Remove</button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={couponInput}
+                                            onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
+                                            placeholder="Coupon code"
+                                            className="flex-1 px-3 py-2.5 border border-gray-300 rounded-md text-sm uppercase tracking-wider focus:ring-2 focus:ring-[var(--brand-pink)] outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleApplyCoupon}
+                                            disabled={applyingCoupon || !couponInput.trim()}
+                                            className="px-4 py-2.5 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                        >
+                                            {applyingCoupon ? "..." : "Apply"}
+                                        </button>
+                                    </div>
+                                    {couponError && <p className="text-xs text-red-500 mt-2">{couponError}</p>}
+                                </>
+                            )}
                         </div>
 
                         <div className="space-y-3 mb-6 text-sm border-t border-gray-200 pt-4">
@@ -339,13 +422,19 @@ export default function CheckoutPage() {
                                 <span>Subtotal</span>
                                 <span>{formatPrice(cartTotal)}</span>
                             </div>
+                            {appliedCoupon && (
+                                <div className="flex justify-between text-green-600">
+                                    <span>Coupon ({appliedCoupon.couponCode})</span>
+                                    <span>−{formatPrice(appliedCoupon.discountAmount)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-gray-600">
                                 <span>Shipping</span>
                                 <span className="text-green-600">Free</span>
                             </div>
                             <div className="flex justify-between items-end pt-3 border-t border-gray-200 border-dashed">
                                 <span className="text-base font-bold text-gray-800">Total</span>
-                                <span className="text-2xl font-bold text-[var(--brand-pink)]">{formatPrice(cartTotal)}</span>
+                                <span className="text-2xl font-bold text-[var(--brand-pink)]">{formatPrice(displayTotal)}</span>
                             </div>
                         </div>
 

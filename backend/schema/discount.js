@@ -16,6 +16,14 @@ const discountSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         // References can be generic depending on targetType
     }],
+    // Optional coupon code. When set, the discount is NOT applied automatically —
+    // customers must enter the code at checkout.
+    couponCode: {
+        type: String,
+        default: null,
+        trim: true,
+        uppercase: true
+    },
     discountType: {
         type: String,
         enum: ['Percentage', 'Flat'],

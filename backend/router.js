@@ -1,4 +1,5 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import loginController from './controller/login.js';
 import db from './method.js';
 
@@ -30,13 +31,22 @@ const product = new ProductController();
 const attribute = AttributeController; // Already instantiated in the file
 const banner = BannerController; // Already instantiated
 
+// Strict limiter for credential/OTP endpoints (brute-force protection)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { success: false, message: "Too many attempts. Please try again in 15 minutes." }
+});
+
 // 2. Authentication Routes
-router.post('/request-otp', loginController.requestOtp);
-router.post('/verify-otp', loginController.verifyOtp);
-router.post('/admin/login', loginController.adminLogin);
+router.post('/request-otp', authLimiter, loginController.requestOtp);
+router.post('/verify-otp', authLimiter, loginController.verifyOtp);
+router.post('/admin/login', authLimiter, loginController.adminLogin);
 
 // SuperAdmin Only Routes
-router.post('/superadmin/login', loginController.superAdminLogin);
+router.post('/superadmin/login', authLimiter, loginController.superAdminLogin);
 router.post('/superadmin/admins/list', requireSuperAdmin, loginController.listAdmins);
 router.post('/superadmin/admins/create', requireSuperAdmin, loginController.createAdmin);
 router.post('/superadmin/admins/delete', requireSuperAdmin, loginController.deleteAdmin);
@@ -107,17 +117,19 @@ router.post('/special-collection/update', requireAdmin, specialCollectionUpload,
 router.post('/special-collection/delete', requireAdmin, specialCollection.deleteSpecialCollection, responsedata);
 
 // 11. Public (No-Auth) Routes for Storefront
-router.post('/public/banners', banner.listbanner, responsedata);
-router.post('/public/categories', category.listcategory, responsedata);
-router.post('/public/sections', section.listsection, responsedata);
-router.post('/public/products', product.listproduct, responsedata);
-router.post('/public/special-collections', specialCollection.listSpecialCollections, responsedata);
+// publicOnly marks the request so list controllers hide inactive records
+const publicOnly = (req, res, next) => { req.publicOnly = true; next(); };
+router.post('/public/banners', publicOnly, banner.listbanner, responsedata);
+router.post('/public/categories', publicOnly, category.listcategory, responsedata);
+router.post('/public/sections', publicOnly, section.listsection, responsedata);
+router.post('/public/products', publicOnly, product.listproduct, responsedata);
+router.post('/public/special-collections', publicOnly, specialCollection.listSpecialCollections, responsedata);
 
 // 12. Customer Authentication Routes
-router.post('/customer/register', customerAuth.register);
-router.post('/customer/login', customerAuth.login);
-router.post('/customer/forgot-password', customerAuth.forgotPassword);
-router.post('/customer/reset-password', customerAuth.resetPassword);
+router.post('/customer/register', authLimiter, customerAuth.register);
+router.post('/customer/login', authLimiter, customerAuth.login);
+router.post('/customer/forgot-password', authLimiter, customerAuth.forgotPassword);
+router.post('/customer/reset-password', authLimiter, customerAuth.resetPassword);
 
 // 13. Protected Customer Routes
 router.post('/customer/profile', authCustomer, customerAuth.getProfile);
@@ -131,11 +143,16 @@ router.post('/customer/wishlist/toggle', authCustomer, customerAuth.toggleWishli
 
 router.post('/customer/order/add', authCustomer, order.placeOrder, responsedata);
 router.post('/customer/order/history', authCustomer, order.getMyOrders, responsedata);
+router.post('/customer/order/cancel', authCustomer, order.cancelOrder, responsedata);
+router.post('/public/coupon/preview', order.previewCoupon, responsedata);
 router.post('/customer/appointment/history', authCustomer, appointment.getMyAppointments);
 
 // Razorpay Payment Routes (Securely auth'd to Customer)
 router.post('/customer/order/create-razorpay-order', authCustomer, order.createRazorpayOrder, responsedata);
 router.post('/customer/order/verify-payment', authCustomer, order.verifyPayment, responsedata);
+
+// Razorpay Webhook (server-to-server; verified via RAZORPAY_WEBHOOK_SECRET signature, no user auth)
+router.post('/payment/webhook', order.razorpayWebhook);
 
 // Admin route to view all customers
 router.post('/customer/list', requireAdmin, customerAuth.listUsers);

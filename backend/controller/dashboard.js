@@ -32,11 +32,21 @@ class DashboardController {
                 }
             }
 
+            // Low-stock alert: active products running out (threshold: 5)
+            const LOW_STOCK_THRESHOLD = 5;
+            const lowStockProducts = products
+                .filter(p => p.isActive !== false && Number(p.stock) <= LOW_STOCK_THRESHOLD)
+                .sort((a, b) => Number(a.stock) - Number(b.stock))
+                .slice(0, 10)
+                .map(p => ({ _id: p._id, title: p.title, stock: Number(p.stock) || 0, slug: p.slug }));
+
             req.api_data = {
                 totalProducts,
                 totalCategories,
                 totalOrders,
-                totalRevenue
+                totalRevenue,
+                lowStockCount: products.filter(p => p.isActive !== false && Number(p.stock) <= LOW_STOCK_THRESHOLD).length,
+                lowStockProducts
             };
             req.api_message = "Dashboard stats fetched successfully";
             next();

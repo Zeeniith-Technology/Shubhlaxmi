@@ -35,4 +35,14 @@ const appointmentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Prevent double-booking at the DB level: only one non-cancelled appointment
+// per (date, timeSlot). Cancelled appointments leave the index, freeing the slot.
+appointmentSchema.index(
+    { date: 1, timeSlot: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { status: { $in: ["Pending", "Confirmed", "Completed"] } }
+    }
+);
+
 export default appointmentSchema;

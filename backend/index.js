@@ -1,5 +1,10 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 import mongoose from 'mongoose';
 import connectdb from './connection.js';
 import router from './router.js';
@@ -13,9 +18,38 @@ import attributeSchema from './schema/attribute.js';
 import bannerSchema from './schema/banner.js';
 import homeSettingSchema from './schema/homeSetting.js';
 
+// Fail fast on missing critical secrets — running without them silently
+// breaks auth (or would have fallen back to hardcoded dev secrets).
+if (!process.env.JWT_SECRET) {
+    console.error("FATAL: JWT_SECRET environment variable is not set. Refusing to start.");
+    process.exit(1);
+}
+if (!process.env.MONGO_URL) {
+    console.error("FATAL: MONGO_URL environment variable is not set. Refusing to start.");
+    process.exit(1);
+}
+
 const app = express();
+
+// Render runs behind a proxy — needed so rate limiting sees real client IPs
+app.set('trust proxy', 1);
+
+app.use(helmet());
 app.use(cors());
-app.use(express.json());
+
+// Global safety-net limiter (generous; auth routes have stricter limits in router.js)
+app.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 600,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { success: false, message: "Too many requests. Please try again later." }
+}));
+
+// Keep the raw request body so webhook signatures (Razorpay) can be verified
+app.use(express.json({
+    verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 connectdb().then(async () => {
     try {
         await db.checkTableExists('tblcategories', categorySchema);

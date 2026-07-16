@@ -20,6 +20,7 @@ export default function DiscountsPage() {
     const [targetIds, setTargetIds] = useState<string[]>([]);
     const [discountType, setDiscountType] = useState("Percentage");
     const [value, setValue] = useState("");
+    const [couponCode, setCouponCode] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [isActive, setIsActive] = useState(true);
@@ -83,6 +84,7 @@ export default function DiscountsPage() {
         setTargetIds([]);
         setDiscountType("Percentage");
         setValue("");
+        setCouponCode("");
         setStartDate("");
         setEndDate("");
         setIsActive(true);
@@ -102,6 +104,7 @@ export default function DiscountsPage() {
         setTargetIds(d.targetIds || []);
         setDiscountType(d.discountType);
         setValue(String(d.value));
+        setCouponCode(d.couponCode || "");
         setStartDate(formatForInput(d.startDate));
         setEndDate(formatForInput(d.endDate));
         setIsActive(d.isActive);
@@ -117,6 +120,7 @@ export default function DiscountsPage() {
         const payload = {
             id: editId,
             name, targetType, targetIds, discountType,
+            couponCode: couponCode.trim(),
             value: Number(value),
             startDate: new Date(startDate).toISOString(),
             endDate: new Date(endDate).toISOString(),
@@ -225,6 +229,19 @@ export default function DiscountsPage() {
                                     <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", fontSize: "14px" }}>Discount Value</label>
                                     <input type="number" required min="1" value={value} onChange={e => setValue(e.target.value)} placeholder="e.g. 20" style={{ width: "100%", padding: "10px", border: "1px solid #cbd5e1", borderRadius: "6px" }} />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: "block", marginBottom: "8px", fontWeight: "500", fontSize: "14px" }}>
+                                    Coupon Code <span style={{ fontWeight: "400", color: "#94a3b8" }}>(optional — leave empty for automatic discount)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={couponCode}
+                                    onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                    placeholder="e.g. DIWALI20 — customers enter this at checkout"
+                                    style={{ width: "100%", padding: "10px", border: "1px solid #cbd5e1", borderRadius: "6px", textTransform: "uppercase", letterSpacing: "1px" }}
+                                />
                             </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>

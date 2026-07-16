@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -20,6 +20,14 @@ export const register = async (req, res) => {
 
         if (!name || !email || !password) {
             return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid email address' });
+        }
+
+        if (String(password).length < 8) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
         }
 
         const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -274,14 +282,18 @@ export const forgotPassword = async (req, res) => {
         const { email } = req.body;
         if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
 
-        const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) return res.status(404).json({ success: false, message: 'No account with that email found' });
+        // Same response whether or not the account exists (prevents user enumeration)
+        const genericResponse = { success: true, message: 'If an account with that email exists, a reset code has been sent.' };
 
-        // Generate token
-        const resetToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit token
-        
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) return res.status(200).json(genericResponse);
+
+        // Cryptographically random 6-digit token, 15-minute window, attempt-limited in resetPassword
+        const resetToken = crypto.randomInt(100000, 1000000).toString();
+
         user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+        user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+        user.resetPasswordAttempts = 0;
 
         await user.save();
 
@@ -295,7 +307,7 @@ Your password reset token is: ${resetToken}\n\n
 If you did not request this, please ignore this email and your password will remain unchanged.\n`
             });
 
-            res.status(200).json({ success: true, message: 'An email has been sent to ' + user.email + ' with further instructions.' });
+            res.status(200).json(genericResponse);
         } catch (emailErr) {
             console.error("Error sending reset email:", emailErr);
             user.resetPasswordToken = undefined;
@@ -316,15 +328,31 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email, token, and new password are required' });
         }
 
-        const cleanToken = token.trim();
-        
-        const user = await User.findOne({
-            email: email.toLowerCase(),
-            resetPasswordToken: cleanToken,
-            resetPasswordExpires: { $gt: new Date() }
-        });
+        if (String(newPassword).length < 8) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
+        }
 
-        if (!user) {
+        const cleanToken = String(token).trim();
+
+        // Look up by email only so wrong-token attempts can be counted
+        const user = await User.findOne({ email: email.toLowerCase() });
+
+        if (!user || !user.resetPasswordToken || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
+            return res.status(400).json({ success: false, message: 'Password reset token is invalid or has expired.' });
+        }
+
+        // Brute-force protection: 5 wrong guesses invalidates the token
+        if ((user.resetPasswordAttempts || 0) >= 5) {
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            user.resetPasswordAttempts = 0;
+            await user.save();
+            return res.status(429).json({ success: false, message: 'Too many incorrect attempts. Please request a new reset code.' });
+        }
+
+        if (user.resetPasswordToken !== cleanToken) {
+            user.resetPasswordAttempts = (user.resetPasswordAttempts || 0) + 1;
+            await user.save();
             return res.status(400).json({ success: false, message: 'Password reset token is invalid or has expired.' });
         }
 
@@ -332,6 +360,7 @@ export const resetPassword = async (req, res) => {
         user.password = await bcrypt.hash(newPassword, salt);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
+        user.resetPasswordAttempts = 0;
 
         await user.save();
 

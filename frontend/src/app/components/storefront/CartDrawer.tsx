@@ -66,7 +66,7 @@ export default function CartDrawer() {
                         </div>
                     ) : (
                         cart.map((item) => (
-                            <div key={item.product._id} className="flex gap-4 border-b border-gray-50 pb-6 group">
+                            <div key={item.lineId} className="flex gap-4 border-b border-gray-50 pb-6 group">
                                 <div className="w-20 h-28 bg-gray-50 rounded-md overflow-hidden flex-shrink-0">
                                     <img
                                         src={item.product.images?.[0]?.url || "https://placehold.co/150x200/f8ecef/ec268f?text=Product"}
@@ -85,17 +85,25 @@ export default function CartDrawer() {
                                             {item.product.title}
                                         </Link>
                                         <button
-                                            onClick={() => removeFromCart(item.product._id)}
+                                            onClick={() => removeFromCart(item.lineId)}
                                             className="text-gray-300 hover:text-red-500 transition-colors"
                                         >
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
 
+                                    {item.product.selectedOptions && Object.keys(item.product.selectedOptions).length > 0 && (
+                                        <div className="mt-1">
+                                            {Object.entries(item.product.selectedOptions).map(([key, value]) => (
+                                                <p key={key} className="text-[11px] text-gray-500">{key}: <span className="text-gray-700">{String(value)}</span></p>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <div className="mt-auto flex items-end justify-between">
                                         <div className="flex items-center border border-gray-200 rounded">
                                             <button
-                                                onClick={() => updateQuantity(item.product._id, item.quantity - 1)}
+                                                onClick={() => updateQuantity(item.lineId, item.quantity - 1)}
                                                 className="px-2 py-1 text-gray-500 hover:text-[var(--brand-pink)] transition-colors"
                                                 disabled={item.quantity <= 1}
                                             >
@@ -103,7 +111,7 @@ export default function CartDrawer() {
                                             </button>
                                             <span className="px-2 py-1 text-xs font-medium w-8 text-center">{item.quantity}</span>
                                             <button
-                                                onClick={() => updateQuantity(item.product._id, item.quantity + 1)}
+                                                onClick={() => updateQuantity(item.lineId, item.quantity + 1)}
                                                 className="px-2 py-1 text-gray-500 hover:text-[var(--brand-pink)] transition-colors"
                                             >
                                                 <Plus size={12} />
@@ -111,7 +119,7 @@ export default function CartDrawer() {
                                         </div>
 
                                         <p className="font-semibold text-[var(--brand-pink)]">
-                                            {formatPrice(item.product.price * item.quantity)}
+                                            {formatPrice(item.unitPrice * item.quantity)}
                                         </p>
                                     </div>
                                 </div>
@@ -148,7 +156,13 @@ export default function CartDrawer() {
                                         setIsCartOpen(false);
                                         
                                         const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://shubhlaxmi.com';
-                                        const itemsList = cart.map(item => `- ${item.quantity}x ${item.product.title} (${formatPrice(item.product.price * item.quantity)})`).join('%0A');
+                                        const itemsList = cart.map(item => {
+                                            const opts = item.product.selectedOptions || {};
+                                            const optsText = Object.keys(opts).length > 0
+                                                ? ` [${Object.entries(opts).map(([k, v]) => `${k}: ${v}`).join(', ')}]`
+                                                : '';
+                                            return `- ${item.quantity}x ${item.product.title}${optsText} (${formatPrice(item.unitPrice * item.quantity)})`;
+                                        }).join('%0A');
                                         const message = `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}%0A%0A*Total Amount:* ${formatPrice(cartTotal)}%0A%0ACheckout Link: ${siteUrl}/checkout%0A%0APlease let me know how to proceed with payment and shipping.`;
                                         
                                         const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;

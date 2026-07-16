@@ -7,7 +7,14 @@ import Link from "next/link";
 export default function AdminDashboard() {
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [stats, setStats] = useState({ totalProducts: 0, totalOrders: 0, totalRevenue: 0, totalCategories: 0 });
+    const [stats, setStats] = useState<{
+        totalProducts: number;
+        totalOrders: number;
+        totalRevenue: number;
+        totalCategories: number;
+        lowStockCount?: number;
+        lowStockProducts?: { _id: string; title: string; stock: number; slug: string }[];
+    }>({ totalProducts: 0, totalOrders: 0, totalRevenue: 0, totalCategories: 0 });
 
     useEffect(() => {
         // Basic client-side route protection
@@ -67,6 +74,28 @@ export default function AdminDashboard() {
                     <p className="text-3xl font-bold text-[#ec268f]">₹{stats.totalRevenue.toLocaleString()}</p>
                 </Link>
             </div>
+
+            {/* Low Stock Alert */}
+            {(stats.lowStockCount ?? 0) > 0 && (
+                <div className="mt-8 bg-white rounded-lg shadow border border-amber-200 overflow-hidden">
+                    <div className="px-6 py-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-amber-800">
+                            ⚠️ Low Stock Alert — {stats.lowStockCount} product{(stats.lowStockCount ?? 0) > 1 ? 's' : ''} running out (≤ 5 left)
+                        </h2>
+                        <Link href="/admin/products" className="text-sm font-semibold text-amber-700 hover:underline">Manage Stock →</Link>
+                    </div>
+                    <div className="divide-y divide-gray-50">
+                        {(stats.lowStockProducts || []).map(p => (
+                            <div key={p._id} className="px-6 py-3 flex items-center justify-between text-sm">
+                                <span className="text-gray-800 font-medium truncate pr-4">{p.title}</span>
+                                <span className={`font-bold px-2.5 py-1 rounded-full text-xs ${p.stock === 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                    {p.stock === 0 ? 'OUT OF STOCK' : `${p.stock} left`}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <button
                 onClick={() => {

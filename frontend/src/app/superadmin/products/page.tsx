@@ -552,8 +552,8 @@ export default function ProductsPage() {
                                         {p.isFeatured && <span style={{ marginLeft: 6, padding: "2px 8px", fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 10, fontWeight: 600 }}>★</span>}
                                     </td>
                                     <td style={{ padding: "12px 14px", fontSize: 14, color: "#1e293b" }}>
-                                        ₹{p.price}
-                                        {p.compareAtPrice && <span style={{ marginLeft: 4, textDecoration: "line-through", color: "#94a3b8", fontSize: 12 }}>₹{p.compareAtPrice}</span>}
+                                        ₹{Number(p.price).toLocaleString('en-IN')}
+                                        {p.compareAtPrice && <span style={{ marginLeft: 4, textDecoration: "line-through", color: "#94a3b8", fontSize: 12 }}>₹{Number(p.compareAtPrice).toLocaleString('en-IN')}</span>}
                                     </td>
                                     <td style={{ padding: "12px 14px", fontSize: 13, color: "#64748b" }}>{p.stock}</td>
                                     <td style={{ padding: "12px 14px", fontSize: 13, color: "#64748b" }}>{getSectionName(p.sectionId)}</td>
