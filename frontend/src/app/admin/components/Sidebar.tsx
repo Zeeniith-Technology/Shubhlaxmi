@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Image as ImageIcon, Layers, FolderTree, Sparkles, ShoppingBag, Video, Package, Home, Users, Star, Tag, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Image as ImageIcon, Layers, FolderTree, Sparkles, ShoppingBag, Video, Package, Home, Users, Star, Tag, ShieldAlert, Film } from "lucide-react";
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -14,6 +14,7 @@ export default function Sidebar() {
         { name: "Dashboard", href: "/admin", icon: <LayoutDashboard size={20} /> },
         { name: "Banners", href: "/admin/banners", icon: <ImageIcon size={20} /> },
         { name: "Special Collections", href: "/admin/special-collections", icon: <Star size={20} /> },
+        { name: "Reels", href: "/admin/reels", icon: <Film size={20} /> },
         { name: "Sections", href: "/admin/sections", icon: <Layers size={20} /> },
         { name: "Categories", href: "/admin/categories", icon: <FolderTree size={20} /> },
         { name: "Attributes", href: "/admin/attributes", icon: <Sparkles size={20} /> },

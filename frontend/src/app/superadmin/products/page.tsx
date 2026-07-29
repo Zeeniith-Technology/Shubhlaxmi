@@ -31,6 +31,9 @@ export default function ProductsPage() {
     const [stock, setStock] = useState("");
     const [sectionId, setSectionId] = useState("");
     const [categoryId, setCategoryId] = useState("");
+    // Toggle: assign the product to a specific Category (default), or
+    // directly to the Section with no category at all.
+    const [assignMode, setAssignMode] = useState<"category" | "sectionOnly">("category");
     const [isFeatured, setIsFeatured] = useState(false);
     const [images, setImages] = useState<FileList | null>(null);
     const [existingImages, setExistingImages] = useState<any[]>([]);
@@ -110,7 +113,7 @@ export default function ProductsPage() {
     });
 
     const resetForm = () => {
-        setTitle(""); setDescription(""); setPrice(""); setCompareAtPrice(""); setSku(""); setStock(""); setSectionId(""); setCategoryId(""); setIsFeatured(false); setImages(null); setEditId(null); setShowForm(false);
+        setTitle(""); setDescription(""); setPrice(""); setCompareAtPrice(""); setSku(""); setStock(""); setSectionId(""); setCategoryId(""); setAssignMode("category"); setIsFeatured(false); setImages(null); setEditId(null); setShowForm(false);
         setVariants([]); setAttributes([]); setCustomizations([]); setSeo({ metaTitle: "", metaDescription: "", keywords: "" });
     };
 
@@ -173,7 +176,9 @@ export default function ProductsPage() {
         setStock(String(p.stock || 0));
         // sectionId and categoryId may be populated objects or plain strings
         setSectionId(typeof p.sectionId === "object" ? p.sectionId?._id || "" : p.sectionId || "");
-        setCategoryId(typeof p.categoryId === "object" ? p.categoryId?._id || "" : p.categoryId || "");
+        const existingCategoryId = typeof p.categoryId === "object" ? p.categoryId?._id || "" : p.categoryId || "";
+        setCategoryId(existingCategoryId);
+        setAssignMode(existingCategoryId ? "category" : "sectionOnly");
         setIsFeatured(p.isFeatured || false); setExistingImages(p.images || []); setImages(null);
 
         // Advanced Fields
@@ -328,14 +333,39 @@ export default function ProductsPage() {
                                 />
                             </div>
                             <div style={{ zIndex: 50 }}>
-                                <label style={labelStyle}>Category *</label>
-                                <CustomSelect
-                                    value={categoryId}
-                                    onChange={setCategoryId}
-                                    options={filteredCategories.map(c => ({ value: c._id, label: c.name }))}
-                                    placeholder="Select Category"
-                                />
+                                <label style={labelStyle}>Assign To</label>
+                                <div style={{ display: "flex", border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden" }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAssignMode("category")}
+                                        style={{ flex: 1, padding: "9px 12px", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", background: assignMode === "category" ? "#ec268f" : "#fff", color: assignMode === "category" ? "#fff" : "#64748b" }}
+                                    >
+                                        Category
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setAssignMode("sectionOnly"); setCategoryId(""); }}
+                                        style={{ flex: 1, padding: "9px 12px", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", background: assignMode === "sectionOnly" ? "#ec268f" : "#fff", color: assignMode === "sectionOnly" ? "#fff" : "#64748b" }}
+                                    >
+                                        Section Only
+                                    </button>
+                                </div>
                             </div>
+                            {assignMode === "category" ? (
+                                <div style={{ zIndex: 50, gridColumn: "1 / -1" }}>
+                                    <label style={labelStyle}>Category *</label>
+                                    <CustomSelect
+                                        value={categoryId}
+                                        onChange={setCategoryId}
+                                        options={filteredCategories.map(c => ({ value: c._id, label: c.name }))}
+                                        placeholder="Select Category"
+                                    />
+                                </div>
+                            ) : (
+                                <div style={{ gridColumn: "1 / -1", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 6, padding: "10px 14px", fontSize: 12.5, color: "#92400e" }}>
+                                    This product will only appear under its Section (e.g. "See All {sections.find(s => s._id === sectionId)?.name || '…'}") — it won't be filed under any specific category dropdown.
+                                </div>
+                            )}
                             <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 22 }}>
                                 <input type="checkbox" id="featured" checked={isFeatured} onChange={e => setIsFeatured(e.target.checked)} style={{ width: 16, height: 16, accentColor: "#ec268f" }} />
                                 <label htmlFor="featured" style={{ fontSize: 14, color: "#374151", fontWeight: 500 }}>Featured</label>

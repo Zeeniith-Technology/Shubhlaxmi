@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useWishlist } from "../../../context/WishlistContext";
 import { useCurrency } from "../../../context/CurrencyContext";
 import { useCart } from "../../../context/CartContext";
+import { useLocation } from "../../../context/LocationContext";
+import ContactForPrice from "../../../components/storefront/ContactForPrice";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 
 export default function WishlistPage() {
@@ -13,6 +15,7 @@ export default function WishlistPage() {
     const { wishlistProducts, wishlistIds, toggleWishlist, isLoading } = useWishlist();
     const { formatPrice } = useCurrency();
     const { addToCart } = useCart();
+    const { isIndia, loading: locationLoading } = useLocation();
 
     useEffect(() => {
         const token = localStorage.getItem("customer_token");
@@ -96,9 +99,15 @@ export default function WishlistPage() {
 
                                 <div className="mt-auto flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium text-[14px] font-[var(--font-body)] text-gray-900">
-                                            {formatPrice(product.price)}
-                                        </span>
+                                        {locationLoading ? (
+                                            <span className="invisible text-sm">{formatPrice(product.price)}</span>
+                                        ) : isIndia ? (
+                                            <ContactForPrice size="sm" productName={product.title} />
+                                        ) : (
+                                            <span className="font-medium text-[14px] font-[var(--font-body)] text-gray-900">
+                                                {formatPrice(product.price)}
+                                            </span>
+                                        )}
                                     </div>
                                     
                                     {/* Action purely to add to cart quickly if active and in stock */}

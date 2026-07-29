@@ -36,8 +36,10 @@ class ProductController {
                 variants, attributes, customizationOptions, seo
             } = req.body;
 
-            if (!title || !price || !sectionId || !categoryId) {
-                req.api_error = { statusCode: 400, message: "Title, price, sectionId, and categoryId are required." };
+            // categoryId is optional — a product can be assigned directly to a
+            // Section only (the admin "Section only" toggle), with no specific category.
+            if (!title || !price || !sectionId) {
+                req.api_error = { statusCode: 400, message: "Title, price, and sectionId are required." };
                 return next();
             }
 
@@ -89,7 +91,7 @@ class ProductController {
                 sku: sku || '',
                 stock: numStock,
                 sectionId,
-                categoryId,
+                categoryId: categoryId || null,
                 images,
                 variants: parsedVariants,
                 attributes: parsedAttributes,
@@ -343,6 +345,12 @@ class ProductController {
             await db.checkTableExists('tblproducts', productSchema);
             const { id: _, ...updateFields } = req.body;
 
+            // An empty string means "switched to Section only" — null it out
+            // rather than passing "" through to Mongoose (invalid ObjectId cast).
+            if (updateFields.categoryId === '') {
+                updateFields.categoryId = null;
+            }
+
             // Parse JSON fields if sent as strings (e.g., from FormData)
             ['variants', 'attributes', 'customizationOptions'].forEach(field => {
                 if (updateFields[field] && typeof updateFields[field] === 'string') {
@@ -450,12 +458,13 @@ class ProductController {
             for (let i = 0; i < items.length; i++) {
                 try {
                     const item = items[i];
-                    if (!item.title || !item.price || !item.sectionId || !item.categoryId) {
-                        errors.push({ index: i, error: "title, price, sectionId, categoryId required" });
+                    if (!item.title || !item.price || !item.sectionId) {
+                        errors.push({ index: i, error: "title, price, sectionId required" });
                         continue;
                     }
                     item.slug = await uniqueSlug(slugify(item.title));
                     item.price = Number(item.price);
+                    if (!item.categoryId) item.categoryId = null;
                     if (item.compareAtPrice) item.compareAtPrice = Number(item.compareAtPrice);
                     if (item.stock) item.stock = Number(item.stock);
                     const result = await db.executdata('tblproducts', productSchema, 'i', item);

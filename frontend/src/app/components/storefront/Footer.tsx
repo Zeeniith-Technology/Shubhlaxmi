@@ -109,7 +109,6 @@ export default function Footer() {
                                     { label: "Refund Policy", href: "/pages/refund" },
                                     { label: "Privacy Policy", href: "/pages/privacy" },
                                     { label: "Terms of Service", href: "/pages/terms" },
-                                    { label: "Contact Information", href: "/pages/contact-information" },
                                 ].map((item) => (
                                     <li key={item.label}>
                                         <Link
@@ -175,9 +174,23 @@ export default function Footer() {
             {/* Bottom Bar */}
             <div className="bg-black/10">
                 <div className="max-w-[1400px] mx-auto px-6 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p className="text-[11px] sm:text-xs text-white/80 font-[var(--font-body)] uppercase tracking-widest text-center sm:text-left">
-                        © {new Date().getFullYear()} SHUBHLAXMI. All Rights Reserved.
-                    </p>
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 text-center sm:text-left">
+                        <p className="text-[11px] sm:text-xs text-white/80 font-[var(--font-body)] uppercase tracking-widest">
+                            © {new Date().getFullYear()} SHUBHLAXMI. All Rights Reserved.
+                        </p>
+                        <span className="hidden sm:inline text-white/40">|</span>
+                        <p className="text-[11px] sm:text-xs text-white/80 font-[var(--font-body)] tracking-widest">
+                            Developed by{" "}
+                            <a
+                                href="https://www.zeeniith.in"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-semibold text-white hover:underline"
+                            >
+                                Zeeniith Technology
+                            </a>
+                        </p>
+                    </div>
                     <div className="flex items-center gap-3">
                         <div className="flex gap-1.5 text-[9px] sm:text-[10px] font-bold text-white/90 tracking-widest">
                             <span className="px-2.5 py-1 sm:py-1.5 bg-[#006FCF]/80 rounded-sm">AMEX</span>

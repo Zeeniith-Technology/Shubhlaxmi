@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useCart } from "../../context/CartContext";
 import { useCurrency } from "../../context/CurrencyContext";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
+import { useLocation } from "../../context/LocationContext";
+import ContactForPrice from "../../components/storefront/ContactForPrice";
 import Link from "next/link";
 import { Trash2, Plus, Minus, ArrowRight } from "lucide-react";
 import API_BASE from "../../../lib/api";
@@ -12,6 +14,7 @@ export default function CartPage() {
     const { cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useCart();
     const { formatPrice } = useCurrency();
     const { settings } = useStoreSettings();
+    const { isIndia, loading: locationLoading } = useLocation();
 
     // Coupon (works in WhatsApp mode too — validated server-side, folded into the message)
     const [couponInput, setCouponInput] = useState("");
@@ -141,9 +144,15 @@ export default function CartPage() {
                                     </div>
 
                                     <div className="text-right">
-                                        <p className="font-bold text-lg text-[var(--text-primary)]">
-                                            {formatPrice(item.unitPrice * item.quantity)}
-                                        </p>
+                                        {locationLoading ? (
+                                            <span className="invisible text-lg">{formatPrice(item.unitPrice * item.quantity)}</span>
+                                        ) : isIndia ? (
+                                            <ContactForPrice size="sm" productName={item.product.title} selectedOptions={item.product.selectedOptions} />
+                                        ) : (
+                                            <p className="font-bold text-lg text-[var(--text-primary)]">
+                                                {formatPrice(item.unitPrice * item.quantity)}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -156,64 +165,74 @@ export default function CartPage() {
                     <div className="bg-gray-50 rounded-xl p-6 sm:p-8 sticky top-28">
                         <h2 className="text-lg font-[var(--font-heading)] font-bold mb-6">Order Summary</h2>
 
-                        {/* Coupon Code */}
-                        <div className="mb-5">
-                            {appliedCoupon ? (
-                                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md px-3 py-2.5">
-                                    <div className="text-sm">
-                                        <span className="font-bold text-green-700">{appliedCoupon.couponCode}</span>
-                                        <span className="text-green-600 ml-2">−{formatPrice(appliedCoupon.discountAmount)}</span>
-                                    </div>
-                                    <button onClick={removeCoupon} className="text-xs text-red-500 hover:text-red-700 font-semibold uppercase">Remove</button>
+                        {/* Coupon Code + price breakdown — hidden for India (no visible price to discount/total) */}
+                        {!isIndia && (
+                            <>
+                                <div className="mb-5">
+                                    {appliedCoupon ? (
+                                        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md px-3 py-2.5">
+                                            <div className="text-sm">
+                                                <span className="font-bold text-green-700">{appliedCoupon.couponCode}</span>
+                                                <span className="text-green-600 ml-2">−{formatPrice(appliedCoupon.discountAmount)}</span>
+                                            </div>
+                                            <button onClick={removeCoupon} className="text-xs text-red-500 hover:text-red-700 font-semibold uppercase">Remove</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={couponInput}
+                                                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
+                                                    placeholder="Coupon code"
+                                                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-md text-sm uppercase tracking-wider bg-white focus:ring-2 focus:ring-[var(--brand-pink)] outline-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleApplyCoupon}
+                                                    disabled={applyingCoupon || !couponInput.trim()}
+                                                    className="px-4 py-2.5 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                                >
+                                                    {applyingCoupon ? "..." : "Apply"}
+                                                </button>
+                                            </div>
+                                            {couponError && <p className="text-xs text-red-500 mt-2">{couponError}</p>}
+                                        </>
+                                    )}
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={couponInput}
-                                            onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
-                                            placeholder="Coupon code"
-                                            className="flex-1 px-3 py-2.5 border border-gray-300 rounded-md text-sm uppercase tracking-wider bg-white focus:ring-2 focus:ring-[var(--brand-pink)] outline-none"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleApplyCoupon}
-                                            disabled={applyingCoupon || !couponInput.trim()}
-                                            className="px-4 py-2.5 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
-                                        >
-                                            {applyingCoupon ? "..." : "Apply"}
-                                        </button>
-                                    </div>
-                                    {couponError && <p className="text-xs text-red-500 mt-2">{couponError}</p>}
-                                </>
-                            )}
-                        </div>
 
-                        <div className="space-y-4 mb-6 text-sm">
-                            <div className="flex justify-between text-gray-600">
-                                <span>Subtotal</span>
-                                <span className="font-medium text-[var(--text-primary)]">{formatPrice(cartTotal)}</span>
-                            </div>
-                            {appliedCoupon && (
-                                <div className="flex justify-between text-green-600">
-                                    <span>Coupon ({appliedCoupon.couponCode})</span>
-                                    <span>−{formatPrice(appliedCoupon.discountAmount)}</span>
+                                <div className="space-y-4 mb-6 text-sm">
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Subtotal</span>
+                                        <span className="font-medium text-[var(--text-primary)]">{formatPrice(cartTotal)}</span>
+                                    </div>
+                                    {appliedCoupon && (
+                                        <div className="flex justify-between text-green-600">
+                                            <span>Coupon ({appliedCoupon.couponCode})</span>
+                                            <span>−{formatPrice(appliedCoupon.discountAmount)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Shipping estimate</span>
+                                        <span className="text-green-600 font-medium">Free</span>
+                                    </div>
+                                    <div className="flex justify-between text-gray-600 border-b border-gray-200 pb-4">
+                                        <span>Tax estimate</span>
+                                        <span className="font-medium text-[var(--text-primary)]">Inclusive</span>
+                                    </div>
+                                    <div className="flex justify-between items-end pt-2">
+                                        <span className="text-base font-bold text-[var(--text-primary)]">Order Total</span>
+                                        <span className="text-2xl font-bold text-[var(--brand-pink)]">{formatPrice(displayTotal)}</span>
+                                    </div>
                                 </div>
-                            )}
-                            <div className="flex justify-between text-gray-600">
-                                <span>Shipping estimate</span>
-                                <span className="text-green-600 font-medium">Free</span>
-                            </div>
-                            <div className="flex justify-between text-gray-600 border-b border-gray-200 pb-4">
-                                <span>Tax estimate</span>
-                                <span className="font-medium text-[var(--text-primary)]">Inclusive</span>
-                            </div>
-                            <div className="flex justify-between items-end pt-2">
-                                <span className="text-base font-bold text-[var(--text-primary)]">Order Total</span>
-                                <span className="text-2xl font-bold text-[var(--brand-pink)]">{formatPrice(displayTotal)}</span>
-                            </div>
-                        </div>
+                            </>
+                        )}
+
+                        {isIndia && (
+                            <p className="text-sm text-gray-600 mb-6 bg-white border border-gray-200 rounded-md p-4">
+                                Pricing is available on request. Message us on WhatsApp with your cart and our team will share the price and delivery details.
+                            </p>
+                        )}
 
                         {settings.whatsappCheckoutEnabled ? (
                             <button
@@ -224,12 +243,21 @@ export default function CartPage() {
                                         const optsText = Object.keys(opts).length > 0
                                             ? ` [${Object.entries(opts).map(([k, v]) => `${k}: ${v}`).join(', ')}]`
                                             : '';
-                                        return `- ${item.quantity}x ${item.product.title}${optsText} (${formatPrice(item.unitPrice * item.quantity)})`;
+                                        // India: never state prices in the message — ask for them instead
+                                        return isIndia
+                                            ? `- ${item.quantity}x ${item.product.title}${optsText}`
+                                            : `- ${item.quantity}x ${item.product.title}${optsText} (${formatPrice(item.unitPrice * item.quantity)})`;
                                     }).join('%0A');
-                                    const couponLine = appliedCoupon
-                                        ? `%0A*Coupon (${appliedCoupon.couponCode}):* -${formatPrice(appliedCoupon.discountAmount)}`
-                                        : '';
-                                    const message = `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}${couponLine}%0A%0A*Total Amount:* ${formatPrice(displayTotal)}%0A%0ACheckout Link: ${siteUrl}/cart%0A%0APlease let me know how to proceed with payment and shipping.`;
+
+                                    let message: string;
+                                    if (isIndia) {
+                                        message = `Hello Shubhlaxmi, I would like to know the price and place an order for:%0A%0A*Items:*%0A${itemsList}%0A%0APlease share the price and let me know how to proceed.`;
+                                    } else {
+                                        const couponLine = appliedCoupon
+                                            ? `%0A*Coupon (${appliedCoupon.couponCode}):* -${formatPrice(appliedCoupon.discountAmount)}`
+                                            : '';
+                                        message = `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}${couponLine}%0A%0A*Total Amount:* ${formatPrice(displayTotal)}%0A%0ACheckout Link: ${siteUrl}/cart%0A%0APlease let me know how to proceed with payment and shipping.`;
+                                    }
 
                                     const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
                                     window.open(whatsappUrl, '_blank');
@@ -237,7 +265,7 @@ export default function CartPage() {
                                 className="w-full py-4 bg-[#25D366] text-white rounded-md text-sm font-semibold tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-all shadow-md hover:shadow-lg"
                             >
                                 <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="css-i6dzq1"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                                Order via WhatsApp
+                                {isIndia ? "Ask Price on WhatsApp" : "Order via WhatsApp"}
                             </button>
                         ) : (
                             <Link

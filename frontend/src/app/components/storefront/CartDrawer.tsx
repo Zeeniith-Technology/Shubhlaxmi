@@ -3,6 +3,8 @@
 import { useCart } from "../../context/CartContext";
 import { useCurrency } from "../../context/CurrencyContext";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
+import { useLocation } from "../../context/LocationContext";
+import ContactForPrice from "./ContactForPrice";
 import Link from "next/link";
 import { Trash2, Plus, Minus, X, ShoppingBag } from "lucide-react";
 import { useEffect } from "react";
@@ -11,6 +13,7 @@ export default function CartDrawer() {
     const { cart, removeFromCart, updateQuantity, cartTotal, isCartOpen, setIsCartOpen } = useCart();
     const { formatPrice } = useCurrency();
     const { settings } = useStoreSettings();
+    const { isIndia, loading: locationLoading } = useLocation();
 
     // Prevent body scroll when cart is open
     useEffect(() => {
@@ -118,9 +121,15 @@ export default function CartDrawer() {
                                             </button>
                                         </div>
 
-                                        <p className="font-semibold text-[var(--brand-pink)]">
-                                            {formatPrice(item.unitPrice * item.quantity)}
-                                        </p>
+                                        {locationLoading ? (
+                                            <span className="invisible text-sm">{formatPrice(item.unitPrice * item.quantity)}</span>
+                                        ) : isIndia ? (
+                                            <ContactForPrice size="sm" productName={item.product.title} selectedOptions={item.product.selectedOptions} />
+                                        ) : (
+                                            <p className="font-semibold text-[var(--brand-pink)]">
+                                                {formatPrice(item.unitPrice * item.quantity)}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -131,15 +140,23 @@ export default function CartDrawer() {
                 {/* Footer / Checkout */}
                 {cart.length > 0 && (
                     <div className="p-6 bg-gray-50 border-t border-gray-100">
-                        <div className="flex justify-between items-end mb-4">
-                            <span className="text-gray-600">Subtotal</span>
-                            <span className="text-xl font-bold text-[var(--text-primary)]">
-                                {formatPrice(cartTotal)}
-                            </span>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-6 text-center">
-                            Shipping & taxes calculated at checkout
-                        </p>
+                        {isIndia ? (
+                            <p className="text-xs text-gray-500 mb-6 text-center">
+                                Pricing available on request — message us on WhatsApp for the price and delivery details.
+                            </p>
+                        ) : (
+                            <>
+                                <div className="flex justify-between items-end mb-4">
+                                    <span className="text-gray-600">Subtotal</span>
+                                    <span className="text-xl font-bold text-[var(--text-primary)]">
+                                        {formatPrice(cartTotal)}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-6 text-center">
+                                    Shipping & taxes calculated at checkout
+                                </p>
+                            </>
+                        )}
 
                         <div className="space-y-3">
                             <Link
@@ -161,17 +178,22 @@ export default function CartDrawer() {
                                             const optsText = Object.keys(opts).length > 0
                                                 ? ` [${Object.entries(opts).map(([k, v]) => `${k}: ${v}`).join(', ')}]`
                                                 : '';
-                                            return `- ${item.quantity}x ${item.product.title}${optsText} (${formatPrice(item.unitPrice * item.quantity)})`;
+                                            // India: never state prices in the message — ask for them instead
+                                            return isIndia
+                                                ? `- ${item.quantity}x ${item.product.title}${optsText}`
+                                                : `- ${item.quantity}x ${item.product.title}${optsText} (${formatPrice(item.unitPrice * item.quantity)})`;
                                         }).join('%0A');
-                                        const message = `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}%0A%0A*Total Amount:* ${formatPrice(cartTotal)}%0A%0ACheckout Link: ${siteUrl}/checkout%0A%0APlease let me know how to proceed with payment and shipping.`;
-                                        
+                                        const message = isIndia
+                                            ? `Hello Shubhlaxmi, I would like to know the price and place an order for:%0A%0A*Items:*%0A${itemsList}%0A%0APlease share the price and let me know how to proceed.`
+                                            : `Hello Shubhlaxmi, I would like to place an order:%0A%0A*Items:*%0A${itemsList}%0A%0A*Total Amount:* ${formatPrice(cartTotal)}%0A%0ACheckout Link: ${siteUrl}/checkout%0A%0APlease let me know how to proceed with payment and shipping.`;
+
                                         const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
                                         window.open(whatsappUrl, '_blank');
                                     }}
                                     className="w-full py-3 bg-[#25D366] text-white rounded text-sm font-semibold tracking-wider uppercase flex justify-center hover:bg-[#128C7E] transition-colors shadow-md items-center gap-2"
                                 >
                                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="css-i6dzq1"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                                    Order via WhatsApp
+                                    {isIndia ? "Ask Price on WhatsApp" : "Order via WhatsApp"}
                                 </button>
                             ) : (
                                 <Link

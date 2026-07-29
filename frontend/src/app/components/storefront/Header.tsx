@@ -15,12 +15,20 @@ interface Category {
     _id: string;
     name: string;
     slug?: string;
+    sectionId?: string | { _id: string };
     image?: { url: string };
     subcategories?: Category[];
 }
 
+interface Section {
+    _id: string;
+    name: string;
+    slug?: string;
+}
+
 export default function Header() {
     const [categories, setCategories] = useState<Category[]>([]);
+    const [sections, setSections] = useState<Section[]>([]);
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -37,9 +45,9 @@ export default function Header() {
     const [headerHeight, setHeaderHeight] = useState(96);
     const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const openMegaMenu = () => {
+    const openMegaMenu = (key: string) => {
         if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-        setActiveDropdown('new-arrivals');
+        setActiveDropdown(key);
     };
 
     const scheduleMegaMenuClose = () => {
@@ -97,11 +105,33 @@ export default function Header() {
                 console.error("Failed to fetch categories", e);
             }
         };
+        const fetchSections = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/public/sections`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({}),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setSections(data.data || []);
+                }
+            } catch (e) {
+                console.error("Failed to fetch sections", e);
+            }
+        };
         fetchCategories();
+        fetchSections();
     }, []);
 
-    // Get only top-level categories (no parent)
-    const topCategories = categories.filter((c: any) => !c.parentCategory || c.parentCategory === "");
+    // Get only top-level categories (no parent) — was incorrectly checking
+    // `parentCategory` (a field that doesn't exist) instead of `parentCategoryId`,
+    // so every subcategory was being treated as top-level.
+    const topCategories = categories.filter((c: any) => !c.parentCategoryId);
+
+    const sectionId = (cat: Category) => (typeof cat.sectionId === 'object' ? cat.sectionId?._id : cat.sectionId);
+    const categoriesForSection = (section: Section) =>
+        topCategories.filter((cat) => sectionId(cat) === section._id);
 
     return (
         <header
@@ -249,7 +279,7 @@ export default function Header() {
                 {/* New Arrivals — Animated Horizontal Scroll Mega Menu */}
                 <div
                     className="relative group"
-                    onMouseEnter={openMegaMenu}
+                    onMouseEnter={() => openMegaMenu('new-arrivals')}
                     onMouseLeave={scheduleMegaMenuClose}
                 >
                     <button className="flex items-center gap-1 text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide focus:outline-none">
@@ -341,52 +371,169 @@ export default function Header() {
                         `}</style>
                     </div>
                 </div>
-                {topCategories.slice(0, 5).map((cat) => {
-                    const subCategories = categories.filter((sub: any) => sub.parentCategoryId === cat._id);
-                    const hasSubCategories = subCategories.length > 0;
+                {/* Section-level nav (Mens / Womens / Kids) — each reveals a mega menu.
+                    Categories with subcategories get their own column (nested list);
+                    categories with none are grouped into one compact link row instead
+                    of wasting a whole empty column each — most categories only have
+                    0-2 subcategories in practice. */}
+                {sections.map((section) => {
+                    const sectionCategories = categoriesForSection(section);
+                    if (sectionCategories.length === 0) return null;
+                    const dropdownKey = `section-${section._id}`;
+
+                    const withSubs = sectionCategories
+                        .map((cat) => ({ cat, subCategories: categories.filter((sub: any) => sub.parentCategoryId === cat._id) }))
+                        .filter((g) => g.subCategories.length > 0);
+                    const standalone = sectionCategories.filter(
+                        (cat) => !categories.some((sub: any) => sub.parentCategoryId === cat._id)
+                    );
 
                     return (
                         <div
-                            key={cat._id}
+                            key={section._id}
                             className="relative group"
-                            onMouseEnter={() => hasSubCategories ? setActiveDropdown(cat._id) : undefined}
-                            onMouseLeave={() => setActiveDropdown(null)}
+                            onMouseEnter={() => openMegaMenu(dropdownKey)}
+                            onMouseLeave={scheduleMegaMenuClose}
                         >
-                            {/* If no subcategories, render as a plain link */}
-                            {!hasSubCategories ? (
-                                <Link
-                                    href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
-                                    className="flex items-center gap-1 text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
-                                >
-                                    {cat.name}
-                                </Link>
-                            ) : (
-                                <button className="flex items-center gap-1 text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide focus:outline-none">
-                                    {cat.name}
-                                    <ChevronDown size={12} className="transition-transform group-hover:rotate-180 opacity-50" />
-                                </button>
-                            )}
+                            <button className="flex items-center gap-1 text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide focus:outline-none">
+                                {section.name}
+                                <ChevronDown size={12} className="transition-transform group-hover:rotate-180 opacity-50" />
+                            </button>
 
-                            {/* Standard Dropdown */}
-                            {activeDropdown === cat._id && hasSubCategories && (
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 bg-white shadow-xl rounded-b-lg border border-gray-100 py-4 px-6 min-w-[220px] z-50">
-                                    <Link
-                                        href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
-                                        className="block text-sm font-bold text-[#ea2083] mb-3 font-[var(--font-body)] border-b border-gray-100 pb-2"
-                                    >
-                                        See All {cat.name}
-                                    </Link>
-                                    {subCategories.map((sub: any) => (
+                            <div
+                                className={`fixed left-0 w-screen bg-white border-t border-gray-100 z-50 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] transition-all duration-300 ease-out origin-top ${
+                                    activeDropdown === dropdownKey
+                                        ? 'opacity-100 translate-y-0 pointer-events-auto'
+                                        : 'opacity-0 -translate-y-3 pointer-events-none'
+                                }`}
+                                style={{ top: headerHeight }}
+                                onMouseEnter={cancelMegaMenuClose}
+                                onMouseLeave={scheduleMegaMenuClose}
+                            >
+                                <div className="max-w-[1400px] mx-auto px-8 py-8">
+                                    <div className="flex items-center justify-between mb-7">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1 h-5 bg-[var(--brand-pink)] rounded-full" />
+                                            <span className="text-[11px] font-bold tracking-[0.25em] text-gray-500 uppercase">Shop {section.name}</span>
+                                        </div>
                                         <Link
-                                            key={sub._id}
-                                            href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`}
-                                            className="block py-1.5 text-[13px] text-gray-600 hover:text-[#ea2083] font-[var(--font-body)]"
+                                            href={`/collections/${section.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                            onClick={() => setActiveDropdown(null)}
+                                            className="text-[12px] text-[var(--brand-pink)] font-semibold tracking-wide flex items-center gap-1 group/link hover:underline"
                                         >
-                                            {sub.name}
+                                            See All {section.name}
+                                            <span className="inline-block transition-transform group-hover/link:translate-x-1">→</span>
                                         </Link>
-                                    ))}
+                                    </div>
+
+                                    <div className="flex gap-12">
+                                        {/* Main content */}
+                                        <div className="flex-1 min-w-0">
+                                            {/* Categories with subcategories — one column each, small thumbnail + nested list */}
+                                            {withSubs.length > 0 && (
+                                                <div className="grid gap-x-8 gap-y-8 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 200px))' }}>
+                                                    {withSubs.map(({ cat, subCategories }) => (
+                                                        <div key={cat._id}>
+                                                            <Link
+                                                                href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                                                onClick={() => setActiveDropdown(null)}
+                                                                className="group/cat flex items-center gap-2.5 mb-3.5"
+                                                            >
+                                                                <span className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
+                                                                    {cat.image?.url && (
+                                                                        <img src={cat.image.url} alt={cat.name} className="w-full h-full object-cover" />
+                                                                    )}
+                                                                </span>
+                                                                <span className="text-[13px] font-bold text-gray-900 uppercase tracking-wide group-hover/cat:text-[var(--brand-pink)] transition-colors">
+                                                                    {cat.name}
+                                                                </span>
+                                                            </Link>
+                                                            <div className="space-y-2.5 pl-[46px]">
+                                                                <Link
+                                                                    href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                                                    onClick={() => setActiveDropdown(null)}
+                                                                    className="block text-[13px] text-[var(--brand-pink)] font-semibold hover:underline"
+                                                                >
+                                                                    See All {cat.name}
+                                                                </Link>
+                                                                {subCategories.map((sub: any) => (
+                                                                    <Link
+                                                                        key={sub._id}
+                                                                        href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                                                        onClick={() => setActiveDropdown(null)}
+                                                                        className="block text-[13px] text-gray-600 hover:text-[var(--brand-pink)] transition-colors"
+                                                                    >
+                                                                        {sub.name}
+                                                                    </Link>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Categories with no subcategories — image tile grid */}
+                                            {standalone.length > 0 && (
+                                                <div className={withSubs.length > 0 ? 'pt-7 border-t border-gray-100' : ''}>
+                                                    <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 150px))' }}>
+                                                        {standalone.map((cat) => (
+                                                            <Link
+                                                                key={cat._id}
+                                                                href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                                                onClick={() => setActiveDropdown(null)}
+                                                                className="group/tile flex flex-col items-center gap-2.5 text-center"
+                                                            >
+                                                                <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 relative shadow-sm group-hover/tile:shadow-md transition-shadow duration-300">
+                                                                    {cat.image?.url ? (
+                                                                        <img
+                                                                            src={cat.image.url}
+                                                                            alt={cat.name}
+                                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover/tile:scale-110"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-100">
+                                                                            <span className="text-3xl font-bold text-[var(--brand-pink)] opacity-20 select-none">
+                                                                                {cat.name.charAt(0).toUpperCase()}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/tile:opacity-100 transition-opacity duration-300" />
+                                                                </div>
+                                                                <span className="text-[12.5px] font-semibold text-gray-800 group-hover/tile:text-[var(--brand-pink)] transition-colors leading-tight">
+                                                                    {cat.name}
+                                                                </span>
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Promo panel */}
+                                        {sectionCategories[0]?.image?.url && (
+                                            <Link
+                                                href={`/collections/${section.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                                onClick={() => setActiveDropdown(null)}
+                                                className="group/promo hidden lg:block w-[190px] xl:w-[230px] 2xl:w-[280px] shrink-0 relative rounded-xl overflow-hidden shadow-md"
+                                            >
+                                                <img
+                                                    src={sectionCategories[0].image.url}
+                                                    alt={section.name}
+                                                    className="w-full h-full object-cover absolute inset-0 transition-transform duration-500 group-hover/promo:scale-105"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                                                <div className="relative h-full min-h-[280px] flex flex-col justify-end p-5">
+                                                    <p className="text-white/80 text-[11px] font-semibold tracking-[0.2em] uppercase mb-1">New Season</p>
+                                                    <h3 className="text-white text-xl font-[var(--font-heading)] mb-3">{section.name} Collection</h3>
+                                                    <span className="inline-flex items-center gap-1.5 text-white text-[11px] font-bold tracking-widest uppercase border border-white/70 rounded-full px-3.5 py-1.5 w-fit group-hover/promo:bg-white group-hover/promo:text-gray-900 transition-colors">
+                                                        Shop Now
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     );
                 })}
@@ -397,16 +544,10 @@ export default function Header() {
                     Live Video Shopping
                 </Link>
                 <Link
-                    href="/collections/budget-friendly"
+                    href="/pages/contact"
                     className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
                 >
-                    Budget Friendly
-                </Link>
-                <Link
-                    href="/collections/1000-sarees"
-                    className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
-                >
-                    Under ₹1000
+                    Contact Us
                 </Link>
             </nav>
 
@@ -504,66 +645,90 @@ export default function Header() {
                             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                         </div>
 
-                        {/* Top Categories from API mapped with accordions */}
-                        {topCategories.filter(cat => cat.name.toLowerCase().includes(categorySearch.toLowerCase())).map((cat) => {
-                            const subCategories = categories.filter((sub: any) => sub.parentCategoryId === cat._id);
-                            const hasSubCategories = subCategories.length > 0;
-                            const isMegaMenu = cat.name.toLowerCase() === 'saree' || cat.name.toLowerCase() === 'sarees' || cat.name.toLowerCase().includes('salwar');
-                            
-                            if (isMegaMenu || hasSubCategories) {
-                                return (
-                                    <div key={cat._id} className="border-b border-gray-100">
-                                        <button
-                                            onClick={() => setActiveDropdown(activeDropdown === `mobile-${cat._id}` ? null : `mobile-${cat._id}`)}
-                                            className="w-full flex items-center justify-between py-4 text-[17px] font-medium text-gray-800 font-[var(--font-heading)] tracking-wide"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                {cat.image?.url ? (
-                                                    <img src={cat.image.url} alt={cat.name} className="w-10 h-10 rounded-full object-cover shadow-sm border border-slate-200" />
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center text-[var(--brand-pink)] font-bold shadow-sm border border-pink-200">
-                                                        {cat.name.charAt(0)}
-                                                    </div>
-                                                )}
-                                                <span>{cat.name}</span>
-                                            </div>
-                                            <ChevronDown size={18} className={`text-gray-400 transition-transform ${activeDropdown === `mobile-${cat._id}` ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        
-                                        {activeDropdown === `mobile-${cat._id}` && (
-                                            <div className="pb-4 pl-4 space-y-4">
-                                                <Link href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block text-[15px] font-semibold text-[var(--brand-pink)] font-[var(--font-body)]">
-                                                    View All {cat.name}
-                                                </Link>
-                                                {subCategories.map((sub: any) => (
-                                                    <Link key={sub._id} href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block text-[15px] text-gray-600 font-[var(--font-body)]">
-                                                        {sub.name}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            }
+                        {/* Sections (Mens/Womens/Kids) as top-level accordions, each revealing its categories */}
+                        {sections.map((section) => {
+                            const sectionCategories = categoriesForSection(section).filter(cat => cat.name.toLowerCase().includes(categorySearch.toLowerCase()));
+                            if (sectionCategories.length === 0) return null;
+                            const sectionKey = `mobile-section-${section._id}`;
 
                             return (
-                                <Link
-                                    key={cat._id}
-                                    href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className="flex items-center gap-4 py-4 border-b border-gray-100"
-                                >
-                                    {cat.image?.url ? (
-                                        <img src={cat.image.url} alt={cat.name} className="w-10 h-10 rounded-full object-cover shadow-sm border border-slate-200" />
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center text-[var(--brand-pink)] font-bold shadow-sm border border-pink-200">
-                                            {cat.name.charAt(0)}
+                                <div key={section._id} className="border-b border-gray-100">
+                                    <button
+                                        onClick={() => setActiveDropdown(activeDropdown === sectionKey ? null : sectionKey)}
+                                        className="w-full flex items-center justify-between py-4 text-[17px] font-bold text-gray-900 font-[var(--font-heading)] tracking-wide uppercase"
+                                    >
+                                        {section.name}
+                                        <ChevronDown size={18} className={`text-gray-400 transition-transform ${activeDropdown === sectionKey ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {activeDropdown === sectionKey && (
+                                        <div className="pb-3">
+                                            <Link href={`/collections/${section.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block py-2 text-[15px] font-semibold text-[var(--brand-pink)] font-[var(--font-body)]">
+                                                View All {section.name}
+                                            </Link>
+                                            {sectionCategories.map((cat) => {
+                                                const subCategories = categories.filter((sub: any) => sub.parentCategoryId === cat._id);
+                                                const hasSubCategories = subCategories.length > 0;
+                                                const catKey = `mobile-cat-${cat._id}`;
+
+                                                if (hasSubCategories) {
+                                                    return (
+                                                        <div key={cat._id} className="border-t border-gray-50">
+                                                            <button
+                                                                onClick={() => setActiveDropdown(activeDropdown === catKey ? null : catKey)}
+                                                                className="w-full flex items-center justify-between py-3 text-[15px] font-medium text-gray-800 font-[var(--font-body)]"
+                                                            >
+                                                                <span className="flex items-center gap-3">
+                                                                    {cat.image?.url ? (
+                                                                        <img src={cat.image.url} alt={cat.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-slate-200" />
+                                                                    ) : (
+                                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center text-[var(--brand-pink)] font-bold text-sm shadow-sm border border-pink-200">
+                                                                            {cat.name.charAt(0)}
+                                                                        </div>
+                                                                    )}
+                                                                    {cat.name}
+                                                                </span>
+                                                                <ChevronDown size={16} className={`text-gray-400 transition-transform ${activeDropdown === catKey ? 'rotate-180' : ''}`} />
+                                                            </button>
+                                                            {activeDropdown === catKey && (
+                                                                <div className="pb-3 pl-4 space-y-3">
+                                                                    <Link href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block text-[14px] font-semibold text-[var(--brand-pink)] font-[var(--font-body)]">
+                                                                        View All {cat.name}
+                                                                    </Link>
+                                                                    {subCategories.map((sub: any) => (
+                                                                        <Link key={sub._id} href={`/collections/${sub.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => setMobileMenuOpen(false)} className="block text-[14px] text-gray-600 font-[var(--font-body)]">
+                                                                            {sub.name}
+                                                                        </Link>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <Link
+                                                        key={cat._id}
+                                                        href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                                        onClick={() => setMobileMenuOpen(false)}
+                                                        className="flex items-center gap-3 py-3 border-t border-gray-50"
+                                                    >
+                                                        {cat.image?.url ? (
+                                                            <img src={cat.image.url} alt={cat.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-slate-200" />
+                                                        ) : (
+                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center text-[var(--brand-pink)] font-bold text-sm shadow-sm border border-pink-200">
+                                                                {cat.name.charAt(0)}
+                                                            </div>
+                                                        )}
+                                                        <span className="text-[15px] font-medium text-gray-800 font-[var(--font-body)]">
+                                                            {cat.name}
+                                                        </span>
+                                                    </Link>
+                                                );
+                                            })}
                                         </div>
                                     )}
-                                    <span className="text-[17px] font-medium text-gray-800 font-[var(--font-heading)] tracking-wide">
-                                        {cat.name}
-                                    </span>
-                                </Link>
+                                </div>
                             );
                         })}
 
@@ -571,11 +736,8 @@ export default function Header() {
                         <Link href="/video-appointment" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
                             Live Video Shopping
                         </Link>
-                        <Link href="/collections/budget-friendly" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
-                            Budget Friendly
-                        </Link>
-                        <Link href="/collections/1000-sarees" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
-                            Under ₹1000
+                        <Link href="/pages/contact" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
+                            Contact Us
                         </Link>
                     </div>
                 </div>

@@ -44,4 +44,51 @@ export const deleteImage = async (publicId) => {
     }
 };
 
+// Videos live in a different Cloudinary resource type — destroying them
+// without resource_type:'video' silently no-ops and leaks storage.
+export const deleteVideo = async (publicId) => {
+    try {
+        if (!publicId) return;
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+    } catch (error) {
+        console.error("Cloudinary Video Delete Error:", error);
+    }
+};
+
+// Reels upload: 'thumbnailImage' field goes to image storage, 'video' field
+// goes to video storage — decided per-file by fieldname.
+const reelStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        if (file.fieldname === 'video') {
+            return {
+                folder: 'shubhlaxmi/reels/videos',
+                resource_type: 'video',
+                allowed_formats: ['mp4', 'mov', 'webm']
+            };
+        }
+        return {
+            folder: 'shubhlaxmi/reels/thumbnails',
+            allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
+            transformation: [{ width: 800, height: 1400, crop: 'limit', quality: 'auto' }]
+        };
+    }
+});
+
+export const uploadReel = multer({
+    storage: reelStorage,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB — short reel clips, not full banner videos
+    fileFilter: (req, file, cb) => {
+        const allowedImage = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+        const allowedVideo = ['video/mp4', 'video/quicktime', 'video/webm'];
+        if (file.fieldname === 'video' && allowedVideo.includes(file.mimetype)) {
+            return cb(null, true);
+        }
+        if (file.fieldname === 'thumbnailImage' && allowedImage.includes(file.mimetype)) {
+            return cb(null, true);
+        }
+        cb(new Error(`Invalid file type for ${file.fieldname}`), false);
+    }
+});
+
 export { cloudinary, upload };

@@ -1,6 +1,7 @@
 import AnnouncementBar from "../components/storefront/AnnouncementBar";
 import Header from "../components/storefront/Header";
 import Footer from "../components/storefront/Footer";
+import ReelsSection from "../components/storefront/ReelsSection";
 import { CartProvider } from "../context/CartContext";
 import { AuthProvider } from "../context/AuthContext";
 import { CurrencyProvider } from "../context/CurrencyContext";
@@ -12,6 +13,7 @@ import { MessageCircle } from "lucide-react";
 import SmoothScrolling from "../components/SmoothScrolling";
 
 import { StoreSettingsProvider } from "../context/StoreSettingsContext";
+import { LocationProvider } from "../context/LocationContext";
 
 export default function StorefrontLayout({
     children,
@@ -21,6 +23,7 @@ export default function StorefrontLayout({
     return (
         <SmoothScrolling>
             <StoreSettingsProvider>
+                <LocationProvider>
                 <AuthProvider>
                 <CurrencyProvider>
                     <CartProvider>
@@ -29,6 +32,7 @@ export default function StorefrontLayout({
                                 <AnnouncementBar />
                                 <Header />
                             <main className="flex-1">{children}</main>
+                            <ReelsSection />
                             <Footer />
                             <CartDrawer />
                             <LoginModal />
@@ -39,7 +43,8 @@ export default function StorefrontLayout({
                         </WishlistProvider>
                     </CartProvider>
                 </CurrencyProvider>
-            </AuthProvider>
+                </AuthProvider>
+                </LocationProvider>
             </StoreSettingsProvider>
         </SmoothScrolling>
     );

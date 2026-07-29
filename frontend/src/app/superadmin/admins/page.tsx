@@ -262,6 +262,7 @@ export default function AdminManagementPage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Temporary Password</label>
                                 <input
                                     type="password"
+                                    autoComplete="new-password"
                                     required
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}

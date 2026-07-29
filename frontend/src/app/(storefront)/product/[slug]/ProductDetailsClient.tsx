@@ -8,6 +8,8 @@ import StorefrontCustomSelect from "../../../components/storefront/StorefrontCus
 import { useCart } from "../../../context/CartContext";
 import { useCurrency } from "../../../context/CurrencyContext";
 import { useStoreSettings } from "../../../context/StoreSettingsContext";
+import { useLocation } from "../../../context/LocationContext";
+import ContactForPrice from "../../../components/storefront/ContactForPrice";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -23,6 +25,7 @@ export default function ProductDetailsClient() {
     const router = useRouter();
     const { addToCart } = useCart();
     const { formatPrice } = useCurrency();
+    const { isIndia, loading: locationLoading } = useLocation();
     const { settings } = useStoreSettings();
     const [product, setProduct] = useState<any>(null);
     const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
@@ -156,8 +159,13 @@ export default function ProductDetailsClient() {
             const optsText = Object.keys(selectedOptions).length > 0
                 ? ` [${Object.entries(selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}]`
                 : '';
-            const itemLine = `- ${quantity}x ${product.title}${optsText} (${formatPrice(product.price * quantity)})`;
-            const message = `Hello Shubhlaxmi, I would like to order:%0A%0A*Item:*%0A${itemLine}%0A%0A*Total:* ${formatPrice(product.price * quantity)}%0A%0ACheckout Link: ${siteUrl}/checkout%0A%0APlease let me know how to proceed with payment and shipping.`;
+            // India: never state a price in the message — ask for it instead
+            const itemLine = isIndia
+                ? `- ${quantity}x ${product.title}${optsText}`
+                : `- ${quantity}x ${product.title}${optsText} (${formatPrice(product.price * quantity)})`;
+            const message = isIndia
+                ? `Hello Shubhlaxmi, I would like to know the price and place an order for:%0A%0A*Item:*%0A${itemLine}%0A%0APlease share the price and let me know how to proceed.`
+                : `Hello Shubhlaxmi, I would like to order:%0A%0A*Item:*%0A${itemLine}%0A%0A*Total:* ${formatPrice(product.price * quantity)}%0A%0ACheckout Link: ${siteUrl}/checkout%0A%0APlease let me know how to proceed with payment and shipping.`;
             const whatsappUrl = `https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
             window.open(whatsappUrl, '_blank');
         } else {
@@ -344,17 +352,25 @@ export default function ProductDetailsClient() {
                     </h1>
 
                     <div className="mb-8">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xl sm:text-2xl text-gray-900 font-[var(--font-body)] font-medium">
-                                {formatPrice(product.price)}
-                            </span>
-                            {product.compareAtPrice && product.compareAtPrice > product.price && (
-                                <span className="text-base text-gray-400 line-through font-[var(--font-body)]">
-                                    {formatPrice(product.compareAtPrice)}
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-[13px] text-gray-600 mt-2 font-[var(--font-body)]">(Inclusive of all Taxes)</p>
+                        {locationLoading ? (
+                            <span className="invisible text-2xl">{formatPrice(product.price)}</span>
+                        ) : isIndia ? (
+                            <ContactForPrice size="lg" productName={product.title} selectedOptions={selectedOptions} />
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl sm:text-2xl text-gray-900 font-[var(--font-body)] font-medium">
+                                        {formatPrice(product.price)}
+                                    </span>
+                                    {product.compareAtPrice && product.compareAtPrice > product.price && (
+                                        <span className="text-base text-gray-400 line-through font-[var(--font-body)]">
+                                            {formatPrice(product.compareAtPrice)}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[13px] text-gray-600 mt-2 font-[var(--font-body)]">(Inclusive of all Taxes)</p>
+                            </>
+                        )}
                     </div>
 
                     {/* Dynamic Variant / Customization Selectors purely from backend data */}
@@ -602,7 +618,7 @@ export default function ProductDetailsClient() {
                                         alt={p.title}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                     />
-                                    {p.compareAtPrice > p.price && (
+                                    {p.compareAtPrice > p.price && !isIndia && (
                                         <span className="absolute top-3 left-3 bg-[var(--brand-pink)] text-white text-[10px] sm:text-xs font-bold px-2 py-1 uppercase tracking-widest shadow-sm">
                                             Sale
                                         </span>
@@ -612,13 +628,21 @@ export default function ProductDetailsClient() {
                                     {p.title}
                                 </h3>
                                 <div className="mt-auto text-center flex flex-wrap items-center justify-center gap-2">
-                                    <span className="font-medium text-[13px] sm:text-[14px] font-[var(--font-body)] text-gray-900">
-                                        {formatPrice(p.price)}
-                                    </span>
-                                    {p.compareAtPrice > p.price && (
-                                        <span className="text-gray-400 text-[12px] line-through font-[var(--font-body)]">
-                                            {formatPrice(p.compareAtPrice)}
-                                        </span>
+                                    {locationLoading ? (
+                                        <span className="invisible text-[13px]">{formatPrice(p.price)}</span>
+                                    ) : isIndia ? (
+                                        <ContactForPrice size="sm" productName={p.title} />
+                                    ) : (
+                                        <>
+                                            <span className="font-medium text-[13px] sm:text-[14px] font-[var(--font-body)] text-gray-900">
+                                                {formatPrice(p.price)}
+                                            </span>
+                                            {p.compareAtPrice > p.price && (
+                                                <span className="text-gray-400 text-[12px] line-through font-[var(--font-body)]">
+                                                    {formatPrice(p.compareAtPrice)}
+                                                </span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </Link>
@@ -648,9 +672,15 @@ export default function ProductDetailsClient() {
                                     {p.title}
                                 </h3>
                                 <div className="mt-auto text-center">
-                                    <span className="font-medium text-[13px] sm:text-[14px] font-[var(--font-body)] text-gray-900">
-                                        {formatPrice(p.price)}
-                                    </span>
+                                    {locationLoading ? (
+                                        <span className="invisible text-[13px]">{formatPrice(p.price)}</span>
+                                    ) : isIndia ? (
+                                        <ContactForPrice size="sm" productName={p.title} />
+                                    ) : (
+                                        <span className="font-medium text-[13px] sm:text-[14px] font-[var(--font-body)] text-gray-900">
+                                            {formatPrice(p.price)}
+                                        </span>
+                                    )}
                                 </div>
                             </Link>
                         ))}

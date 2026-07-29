@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Search as SearchIcon, X, SlidersHorizontal } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useCurrency } from "../../context/CurrencyContext";
+import { useLocation } from "../../context/LocationContext";
+import ContactForPrice from "../../components/storefront/ContactForPrice";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -16,6 +18,7 @@ function SearchContent() {
 
     const { addToCart } = useCart();
     const { formatPrice } = useCurrency();
+    const { isIndia, loading: locationLoading } = useLocation();
 
     const [query, setQuery] = useState(initialQuery);
     const [results, setResults] = useState<any[]>([]);
@@ -167,13 +170,21 @@ function SearchContent() {
                                     </h3>
                                 </Link>
                                 <div className="mt-auto flex items-center gap-3">
-                                    <span className="text-[var(--brand-pink)] font-semibold text-sm sm:text-base font-[var(--font-body)]">
-                                        {formatPrice(product.price)}
-                                    </span>
-                                    {product.comparePrice && product.comparePrice > product.price && (
-                                        <span className="text-gray-400 text-xs sm:text-sm line-through font-[var(--font-body)]">
-                                            {formatPrice(product.comparePrice)}
-                                        </span>
+                                    {locationLoading ? (
+                                        <span className="invisible text-sm">{formatPrice(product.price)}</span>
+                                    ) : isIndia ? (
+                                        <ContactForPrice size="sm" productName={product.title} />
+                                    ) : (
+                                        <>
+                                            <span className="text-[var(--brand-pink)] font-semibold text-sm sm:text-base font-[var(--font-body)]">
+                                                {formatPrice(product.price)}
+                                            </span>
+                                            {product.comparePrice && product.comparePrice > product.price && (
+                                                <span className="text-gray-400 text-xs sm:text-sm line-through font-[var(--font-body)]">
+                                                    {formatPrice(product.comparePrice)}
+                                                </span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>

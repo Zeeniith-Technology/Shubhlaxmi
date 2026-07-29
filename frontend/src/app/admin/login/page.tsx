@@ -73,6 +73,7 @@ export default function AdminLoginPage() {
                         <label className="block text-sm font-medium text-gray-700">Email</label>
                         <input
                             type="email"
+                            autoComplete="username"
                             required
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] text-black"
                             value={email}
@@ -84,6 +85,7 @@ export default function AdminLoginPage() {
                         <label className="block text-sm font-medium text-gray-700">Password</label>
                         <input
                             type="password"
+                            autoComplete="current-password"
                             required
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#ec268f] focus:border-[#ec268f] text-black"
                             value={password}

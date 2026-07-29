@@ -12,7 +12,8 @@ import ProductController from './controller/product.js';
 import AttributeController from './controller/attribute.js';
 import BannerController from './controller/banner.js';
 import specialCollection from './controller/specialCollection.js';
-import { upload } from './config/cloudinary.js';
+import reel from './controller/reel.js';
+import { upload, uploadReel } from './config/cloudinary.js';
 import appointment from './controller/appointment.js';
 import discount from './controller/discount.js';
 import { getTrendingProducts, getTrendingSetting, updateTrendingSetting, getMarqueeSetting, updateMarqueeSetting } from './controller/homeSetting.js';
@@ -116,6 +117,16 @@ router.post('/special-collection/list', requireAdmin, specialCollection.listSpec
 router.post('/special-collection/update', requireAdmin, specialCollectionUpload, specialCollection.updateSpecialCollection, responsedata);
 router.post('/special-collection/delete', requireAdmin, specialCollection.deleteSpecialCollection, responsedata);
 
+// 10c. Reel Routes (storefront "Reels" section above the footer)
+const reelUpload = uploadReel.fields([
+    { name: 'thumbnailImage', maxCount: 1 },
+    { name: 'video', maxCount: 1 }
+]);
+router.post('/reel/add', requireAdmin, reelUpload, reel.addReel, responsedata);
+router.post('/reel/list', requireAdmin, reel.listReel, responsedata);
+router.post('/reel/update', requireAdmin, reelUpload, reel.updateReel, responsedata);
+router.post('/reel/delete', requireAdmin, reel.deleteReel, responsedata);
+
 // 11. Public (No-Auth) Routes for Storefront
 // publicOnly marks the request so list controllers hide inactive records
 const publicOnly = (req, res, next) => { req.publicOnly = true; next(); };
@@ -124,6 +135,7 @@ router.post('/public/categories', publicOnly, category.listcategory, responsedat
 router.post('/public/sections', publicOnly, section.listsection, responsedata);
 router.post('/public/products', publicOnly, product.listproduct, responsedata);
 router.post('/public/special-collections', publicOnly, specialCollection.listSpecialCollections, responsedata);
+router.post('/public/reels', publicOnly, reel.listReel, responsedata);
 
 // 12. Customer Authentication Routes
 router.post('/customer/register', authLimiter, customerAuth.register);

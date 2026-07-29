@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, Phone, Shirt, ShoppingBag, Heart } from "luc
 import { useCart } from "../context/CartContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { useWishlist } from "../context/WishlistContext";
+import { useLocation } from "../context/LocationContext";
+import ContactForPrice from "../components/storefront/ContactForPrice";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -222,7 +224,9 @@ function ProductCard({ product }: { product: any }) {
     const { addToCart } = useCart();
     const { formatPrice } = useCurrency();
     const { toggleWishlist, isInWishlist } = useWishlist();
+    const { isIndia, loading: locationLoading } = useLocation();
     const isWishlisted = isInWishlist(product._id);
+    const hasDiscount = product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
 
     return (
         <Link
@@ -243,8 +247,8 @@ function ProductCard({ product }: { product: any }) {
                     className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 opacity-0 group-hover:opacity-100"
                 />
 
-                {/* SALE Badge */}
-                {product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price) && (
+                {/* SALE Badge — hidden for India (implies pricing info) */}
+                {hasDiscount && !isIndia && (
                     <div className="absolute top-3 left-3 z-10">
                         <span className="bg-[var(--brand-pink)] text-white text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded-sm shadow-sm">
                             {Math.round(((Number(product.compareAtPrice) - Number(product.price)) / Number(product.compareAtPrice)) * 100)}% OFF
@@ -286,15 +290,23 @@ function ProductCard({ product }: { product: any }) {
                 {product.title}
             </h3>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {/* Discounted / current price */}
-                <span className={`text-sm font-semibold font-[var(--font-body)] leading-none ${product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price) ? 'text-[var(--brand-pink)]' : 'text-[var(--text-primary)]'}`}>
-                    {formatPrice(product.price || 0)}
-                </span>
-                {/* Original price strikethrough — use compareAtPrice */}
-                {product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price) && (
-                    <span className="text-xs text-gray-400 line-through font-normal">
-                        {formatPrice(product.compareAtPrice)}
-                    </span>
+                {locationLoading ? (
+                    <span className="invisible text-sm">{formatPrice(product.price || 0)}</span>
+                ) : isIndia ? (
+                    <ContactForPrice size="sm" productName={product.title} />
+                ) : (
+                    <>
+                        {/* Discounted / current price */}
+                        <span className={`text-sm font-semibold font-[var(--font-body)] leading-none ${hasDiscount ? 'text-[var(--brand-pink)]' : 'text-[var(--text-primary)]'}`}>
+                            {formatPrice(product.price || 0)}
+                        </span>
+                        {/* Original price strikethrough — use compareAtPrice */}
+                        {hasDiscount && (
+                            <span className="text-xs text-gray-400 line-through font-normal">
+                                {formatPrice(product.compareAtPrice)}
+                            </span>
+                        )}
+                    </>
                 )}
             </div>
         </Link>

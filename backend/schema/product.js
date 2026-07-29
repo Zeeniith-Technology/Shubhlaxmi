@@ -37,10 +37,13 @@ const productSchema = new mongoose.Schema({
         ref: 'tblsections',
         required: true
     },
+    // Optional — a product can be assigned directly to just a Section
+    // (no specific category) when added via the "Section only" toggle.
     categoryId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'tblcategories',
-        required: true
+        required: false,
+        default: null
     },
     // The base price/stock properties are kept as fallbacks/defaults
     // The actual values will primarily come from the variants array

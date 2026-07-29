@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, ArrowLeft, Send, Image as ImageIcon, MessageSquareText } from "lucide-react";
+import { MessageCircle, X, ArrowLeft, Send, Image as ImageIcon, MessageSquareText, Instagram } from "lucide-react";
 import Link from "next/link";
 
 interface ChatMessage {
@@ -161,6 +161,19 @@ export default function LiveChatWidget() {
                     </div>
                 </div>
             )}
+
+            {/* Instagram Floating Button */}
+            <a
+                href="https://www.instagram.com/shubhlaxmianand/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`fixed right-6 z-40 flex items-center justify-center w-[52px] h-[52px] text-white rounded-full shadow-lg transition-all duration-300 bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] hover:opacity-90
+                    ${isOpen ? "opacity-0 pointer-events-none scale-75 bottom-24" : "opacity-100 scale-100 bottom-[152px]"}
+                `}
+                aria-label="Follow us on Instagram"
+            >
+                <Instagram size={26} />
+            </a>
 
             {/* WhatsApp Floating Button */}
             <a

@@ -200,6 +200,7 @@ export default function LoginModal() {
                             <div>
                                 <input
                                     type="email"
+                                    autoComplete={isLoginView ? "username" : "email"}
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -223,6 +224,7 @@ export default function LoginModal() {
                             <div>
                                 <input
                                     type="password"
+                                    autoComplete={isLoginView ? "current-password" : "new-password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required

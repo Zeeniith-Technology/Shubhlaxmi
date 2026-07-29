@@ -8,6 +8,8 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import { useCurrency } from "../../../context/CurrencyContext";
 import { useWishlist } from "../../../context/WishlistContext";
+import { useLocation } from "../../../context/LocationContext";
+import ContactForPrice from "../../../components/storefront/ContactForPrice";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -18,6 +20,7 @@ export default function CollectionPage() {
     const searchParams = useSearchParams();
     const slug = params.slug as string;
     const { formatPrice } = useCurrency();
+    const { isIndia, loading: locationLoading } = useLocation();
     const { toggleWishlist, isInWishlist } = useWishlist();
 
     // Default price state matching query parameters if present
@@ -270,17 +273,21 @@ export default function CollectionPage() {
             {/* Filter + Sort Bar */}
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-8">
                 <div className="flex items-center justify-between border-y border-gray-200 py-3">
-                    {/* Filter Button */}
-                    <button
-                        onClick={() => setFilterOpen(!filterOpen)}
-                        className="flex items-center gap-2 text-[13px] font-medium text-gray-700 hover:text-gray-900 transition-colors py-1 px-3 border border-gray-300 rounded-sm hover:border-gray-400"
-                    >
-                        <SlidersHorizontal size={15} />
-                        <span>Filter</span>
-                        {hasActiveFilters && (
-                            <span className="w-2 h-2 bg-[var(--brand-pink)] rounded-full"></span>
-                        )}
-                    </button>
+                    {/* Filter Button — hidden for India (no price shown there, so nothing to filter by) */}
+                    {!isIndia ? (
+                        <button
+                            onClick={() => setFilterOpen(!filterOpen)}
+                            className="flex items-center gap-2 text-[13px] font-medium text-gray-700 hover:text-gray-900 transition-colors py-1 px-3 border border-gray-300 rounded-sm hover:border-gray-400"
+                        >
+                            <SlidersHorizontal size={15} />
+                            <span>Filter</span>
+                            {hasActiveFilters && (
+                                <span className="w-2 h-2 bg-[var(--brand-pink)] rounded-full"></span>
+                            )}
+                        </button>
+                    ) : (
+                        <div />
+                    )}
 
                     {/* Product Count */}
                     <p className="text-[13px] text-gray-500 font-[var(--font-body)]">
@@ -306,7 +313,7 @@ export default function CollectionPage() {
                 </div>
 
                 {/* Filter Panel */}
-                {filterOpen && (
+                {filterOpen && !isIndia && (
                     <div className="border border-t-0 border-gray-200 bg-gray-50 p-5 animate-in">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-semibold text-gray-800">Price Range</h3>
@@ -417,7 +424,7 @@ export default function CollectionPage() {
                                             alt={product.title}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                         />
-                                        {product.compareAtPrice > product.price && (
+                                        {product.compareAtPrice > product.price && !isIndia && (
                                             <span className="absolute top-3 left-3 bg-[var(--brand-pink)] text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest shadow-sm">
                                                 {Math.round(((Number(product.compareAtPrice) - Number(product.price)) / Number(product.compareAtPrice)) * 100)}% OFF
                                             </span>
@@ -445,15 +452,23 @@ export default function CollectionPage() {
 
                                 {/* Product Price */}
                                 <div className="mt-auto text-center flex flex-wrap items-center justify-center gap-2">
-                                    <span className={`font-semibold text-[13px] sm:text-[14px] font-[var(--font-body)] ${
-                                        product.compareAtPrice > product.price ? 'text-[var(--brand-pink)]' : 'text-gray-900'
-                                    }`}>
-                                        {formatPrice(product.price)}
-                                    </span>
-                                    {product.compareAtPrice > product.price && (
-                                        <span className="text-gray-400 text-[12px] line-through font-[var(--font-body)]">
-                                            {formatPrice(product.compareAtPrice)}
-                                        </span>
+                                    {locationLoading ? (
+                                        <span className="invisible text-[13px]">{formatPrice(product.price)}</span>
+                                    ) : isIndia ? (
+                                        <ContactForPrice size="sm" productName={product.title} />
+                                    ) : (
+                                        <>
+                                            <span className={`font-semibold text-[13px] sm:text-[14px] font-[var(--font-body)] ${
+                                                product.compareAtPrice > product.price ? 'text-[var(--brand-pink)]' : 'text-gray-900'
+                                            }`}>
+                                                {formatPrice(product.price)}
+                                            </span>
+                                            {product.compareAtPrice > product.price && (
+                                                <span className="text-gray-400 text-[12px] line-through font-[var(--font-body)]">
+                                                    {formatPrice(product.compareAtPrice)}
+                                                </span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </Link>
