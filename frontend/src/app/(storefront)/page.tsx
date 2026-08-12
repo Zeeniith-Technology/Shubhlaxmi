@@ -8,6 +8,7 @@ import { useCurrency } from "../context/CurrencyContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useLocation } from "../context/LocationContext";
 import ContactForPrice from "../components/storefront/ContactForPrice";
+import ReelsSection from "../components/storefront/ReelsSection";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -150,7 +151,7 @@ function CategoryGrid({ categories, title = "Shop By Category" }: { categories: 
                 {topCategories.slice(0, 6).map((cat, index) => (
                     <Link
                         key={cat._id}
-                        href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        href={`/collections/${cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-")}`}
                         className="group relative overflow-hidden rounded-none aspect-[3/5] 
                                    w-[calc(50%-6px)] sm:w-[calc(33.333%-11px)] lg:w-[calc(16.666%-17px)]"
                     >
@@ -190,7 +191,7 @@ function SpecialCollectionsGrid({ collections }: { collections: any[] }) {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-6">
                 {collections.map((collection) => {
-                    const slug = collection.categoryId?.name?.toLowerCase().replace(/\s+/g, "-");
+                    const slug = collection.categoryId?.slug || collection.categoryId?.name?.toLowerCase().replace(/\s+/g, "-");
                     const link = `/collections/${slug}?maxPrice=${collection.maxPrice}`;
 
                     return (
@@ -407,42 +408,6 @@ function VideoShoppingCTA() {
     );
 }
 
-/* ──────────────── STYLE SHOWCASE ──────────────── */
-function StyleShowcase() {
-    return (
-        <section className="max-w-[1536px] mx-auto px-0 sm:px-6 lg:px-8 py-4 sm:py-12">
-            <style dangerouslySetInnerHTML={{ __html: "@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');" }} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-1 sm:gap-5">
-                {/* Traditional Style Panel */}
-                <Link href="/collections/all" className="relative group block w-full overflow-hidden bg-gray-900" style={{ aspectRatio: '4/3' }}>
-                    <img src="/assets/images/traditional_style.png" alt="Traditional Style" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-700" />
-                    {/* Inner White Border */}
-                    <div className="absolute inset-4 sm:inset-6 border-2 border-white/60 pointer-events-none z-10 transition-colors duration-500 group-hover:border-white/90"></div>
-                    {/* Dark gradient overlay at bottom */}
-                    <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-[rgba(15,10,25,0.9)] via-[rgba(15,10,25,0.4)] to-transparent pointer-events-none"></div>
-                    {/* Cursive Text Overlay */}
-                    <div className="absolute inset-x-0 bottom-4 sm:bottom-6 bg-transparent flex justify-center z-20 pointer-events-none mix-blend-plus-lighter">
-                        <span className="text-[#f8f4fa] text-[64px] sm:text-[80px] md:text-[6vw] lg:text-[100px] leading-snug text-center tracking-wider drop-shadow-[0_2px_15px_rgba(0,0,0,1)]" style={{ fontFamily: "'Great Vibes', cursive", textShadow: "0 2px 10px rgba(0,0,0,0.9), 0 0 20px rgba(255,255,255,0.2)" }}>Traditional Style</span>
-                    </div>
-                </Link>
-
-                {/* Ready In Style Panel */}
-                <Link href="/collections/all" className="relative group block w-full overflow-hidden bg-gray-900" style={{ aspectRatio: '4/3' }}>
-                    <img src="/assets/images/ready_in_style.png" alt="Ready in Style" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-700" />
-                    {/* Inner White Border */}
-                    <div className="absolute inset-4 sm:inset-6 border-2 border-white/60 pointer-events-none z-10 transition-colors duration-500 group-hover:border-white/90"></div>
-                    {/* Dark gradient overlay at bottom */}
-                    <div className="absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-[rgba(15,10,25,0.9)] via-[rgba(15,10,25,0.4)] to-transparent pointer-events-none"></div>
-                    {/* Cursive Text Overlay */}
-                    <div className="absolute inset-x-0 bottom-4 sm:bottom-6 bg-transparent flex justify-center z-20 pointer-events-none mix-blend-plus-lighter">
-                        <span className="text-[#f8f4fa] text-[64px] sm:text-[80px] md:text-[6vw] lg:text-[100px] leading-snug text-center tracking-wider drop-shadow-[0_2px_15px_rgba(0,0,0,1)]" style={{ fontFamily: "'Great Vibes', cursive", textShadow: "0 2px 10px rgba(0,0,0,0.9), 0 0 20px rgba(255,255,255,0.2)" }}>Ready in Style</span>
-                    </div>
-                </Link>
-            </div>
-        </section>
-    );
-}
-
 /* ──────────────── SEO BRAND SECTION ──────────────── */
 function SeoBrandSection() {
     const [showMore, setShowMore] = useState(false);
@@ -592,7 +557,7 @@ export default function HomePage() {
             {/* If there were no sections at all, still show the CTA */}
             {sectionsWithCategories.length === 0 && <VideoShoppingCTA />}
 
-            <StyleShowcase />
+            <ReelsSection />
 
             {/* Dynamic Curated Price Segments Block */}
             <SpecialCollectionsGrid collections={specialCollections} />

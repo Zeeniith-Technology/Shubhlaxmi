@@ -1,7 +1,6 @@
 import AnnouncementBar from "../components/storefront/AnnouncementBar";
 import Header from "../components/storefront/Header";
 import Footer from "../components/storefront/Footer";
-import ReelsSection from "../components/storefront/ReelsSection";
 import { CartProvider } from "../context/CartContext";
 import { AuthProvider } from "../context/AuthContext";
 import { CurrencyProvider } from "../context/CurrencyContext";
@@ -32,7 +31,6 @@ export default function StorefrontLayout({
                                 <AnnouncementBar />
                                 <Header />
                             <main className="flex-1">{children}</main>
-                            <ReelsSection />
                             <Footer />
                             <CartDrawer />
                             <LoginModal />

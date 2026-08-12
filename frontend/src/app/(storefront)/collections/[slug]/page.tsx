@@ -18,7 +18,19 @@ type SortOption = "featured" | "price-asc" | "price-desc" | "newest" | "title-as
 export default function CollectionPage() {
     const params = useParams();
     const searchParams = useSearchParams();
-    const slug = params.slug as string;
+    // useParams() (client-side) does NOT auto-decode route segments (unlike
+    // the server-side `params` prop), so a category name containing special
+    // characters (e.g. "Suits & Dress") can arrive here as a literal
+    // "%26" if the URL was ever percent-encoded — decode defensively so
+    // stale/shared/bookmarked links still resolve instead of showing
+    // "%26" and 0 products.
+    const rawSlug = params.slug as string;
+    let slug = rawSlug;
+    try {
+        slug = decodeURIComponent(rawSlug);
+    } catch {
+        // malformed encoding — fall back to the raw value
+    }
     const { formatPrice } = useCurrency();
     const { isIndia, loading: locationLoading } = useLocation();
     const { toggleWishlist, isInWishlist } = useWishlist();

@@ -79,7 +79,7 @@ export default function Footer() {
                                 {topCategories.slice(0, 6).map((cat) => (
                                     <li key={cat._id}>
                                         <Link
-                                            href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                            href={`/collections/${cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-")}`}
                                             className="text-[13px] text-white/80 hover:text-white transition-colors font-[var(--font-body)]"
                                         >
                                             {cat.name}

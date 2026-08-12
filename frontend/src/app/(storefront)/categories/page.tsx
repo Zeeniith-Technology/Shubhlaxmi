@@ -65,7 +65,7 @@ export default function CategoriesPage() {
                         {categories.map((cat, i) => (
                             <Link
                                 key={cat._id}
-                                href={`/collections/${cat.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                href={`/collections/${cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-")}`}
                                 className="group flex flex-col items-center gap-3 text-center"
                                 style={{
                                     animation: `fadeSlideUp 0.4s ease ${i * 40}ms both`
