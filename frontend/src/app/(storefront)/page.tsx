@@ -2,12 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Phone, Shirt, ShoppingBag, Heart } from "lucide-react";
-import { useCart } from "../context/CartContext";
-import { useCurrency } from "../context/CurrencyContext";
-import { useWishlist } from "../context/WishlistContext";
-import { useLocation } from "../context/LocationContext";
-import ContactForPrice from "../components/storefront/ContactForPrice";
+import { ChevronLeft, ChevronRight, Phone, Shirt } from "lucide-react";
 import ReelsSection from "../components/storefront/ReelsSection";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -218,140 +213,6 @@ function SpecialCollectionsGrid({ collections }: { collections: any[] }) {
     );
 }
 
-/* ──────────────── PRODUCT CARD ──────────────── */
-function ProductCard({ product }: { product: any }) {
-    const mainImage = product.images?.[0]?.url || "";
-    const hoverImage = product.images?.[1]?.url || mainImage;
-    const { addToCart } = useCart();
-    const { formatPrice } = useCurrency();
-    const { toggleWishlist, isInWishlist } = useWishlist();
-    const { isIndia, loading: locationLoading } = useLocation();
-    const isWishlisted = isInWishlist(product._id);
-    const hasDiscount = product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
-
-    return (
-        <Link
-            href={`/product/${product.slug}`}
-            className="group block"
-        >
-            <div className="relative overflow-hidden rounded-lg aspect-[3/4] bg-gray-50 mb-3">
-                {/* Primary Image */}
-                <img
-                    src={mainImage}
-                    alt={product.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0"
-                />
-                {/* Hover Image */}
-                <img
-                    src={hoverImage}
-                    alt={product.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 opacity-0 group-hover:opacity-100"
-                />
-
-                {/* SALE Badge — hidden for India (implies pricing info) */}
-                {hasDiscount && !isIndia && (
-                    <div className="absolute top-3 left-3 z-10">
-                        <span className="bg-[var(--brand-pink)] text-white text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded-sm shadow-sm">
-                            {Math.round(((Number(product.compareAtPrice) - Number(product.price)) / Number(product.compareAtPrice)) * 100)}% OFF
-                        </span>
-                    </div>
-                )}
-
-                {/* Wishlist Toggle Button */}
-                <button
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleWishlist(product._id);
-                    }}
-                    className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-white/70 backdrop-blur-md rounded-full shadow-sm hover:scale-110 transition-transform"
-                >
-                    <Heart 
-                        size={16} 
-                        className={`transition-colors ${isWishlisted ? "fill-[#ea2083] stroke-[#ea2083]" : "stroke-gray-600"}`} 
-                    />
-                </button>
-
-                {/* Add to Cart Overlay */}
-                <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out">
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            addToCart(product, 1);
-                        }}
-                        className="w-full py-2.5 bg-white/95 backdrop-blur-sm text-[var(--brand-pink)] font-semibold text-sm tracking-wider uppercase rounded shadow-lg hover:bg-[var(--brand-pink)] hover:text-white transition-colors flex justify-center items-center gap-2"
-                    >
-                        <ShoppingBag size={16} /> Add to Cart
-                    </button>
-                </div>
-            </div>
-
-            {/* Product Info */}
-            <h3 className="text-sm font-[var(--font-body)] text-[var(--text-primary)] mb-1 leading-snug line-clamp-2 group-hover:text-[var(--brand-pink)] transition-colors">
-                {product.title}
-            </h3>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {locationLoading ? (
-                    <span className="invisible text-sm">{formatPrice(product.price || 0)}</span>
-                ) : isIndia ? (
-                    <ContactForPrice size="sm" productName={product.title} />
-                ) : (
-                    <>
-                        {/* Discounted / current price */}
-                        <span className={`text-sm font-semibold font-[var(--font-body)] leading-none ${hasDiscount ? 'text-[var(--brand-pink)]' : 'text-[var(--text-primary)]'}`}>
-                            {formatPrice(product.price || 0)}
-                        </span>
-                        {/* Original price strikethrough — use compareAtPrice */}
-                        {hasDiscount && (
-                            <span className="text-xs text-gray-400 line-through font-normal">
-                                {formatPrice(product.compareAtPrice)}
-                            </span>
-                        )}
-                    </>
-                )}
-            </div>
-        </Link>
-    );
-}
-
-/* ──────────────── TRENDING PRODUCTS ──────────────── */
-function TrendingProducts({ products }: { products: any[] }) {
-    if (products.length === 0) {
-        return (
-            <section className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 text-center">
-                <h2 className="text-2xl sm:text-3xl font-[var(--font-heading)] mb-4 tracking-wide">
-                    Trending Styles
-                </h2>
-                <div className="bg-orange-50 text-orange-600 border border-orange-200 p-8 rounded-lg max-w-2xl mx-auto shadow-sm">
-                    <p className="font-medium">Our latest trends are being updated. Check back soon for exciting new styles!</p>
-                </div>
-            </section>
-        );
-    }
-
-    return (
-        <section className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-16">
-            <h2 className="text-3xl sm:text-3xl font-[var(--font-heading)] text-center mb-6 sm:mb-12 tracking-wide">
-                Trending Styles
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6">
-                {products.slice(0, 8).map((product) => (
-                    <ProductCard key={product._id} product={product} />
-                ))}
-            </div>
-            {products.length > 8 && (
-                <div className="text-center mt-10">
-                    <Link
-                        href="/collections/all"
-                        className="inline-block px-8 py-3 border-2 border-[var(--brand-pink)] text-[var(--brand-pink)] text-sm font-semibold tracking-wider uppercase rounded-md hover:bg-[var(--brand-pink)] hover:text-white transition-colors font-[var(--font-body)]"
-                    >
-                        View All Products
-                    </Link>
-                </div>
-            )}
-        </section>
-    );
-}
 
 const PlusPattern = () => (
     <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6z\' fill=\'%23ffffff\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")' }}></div>
@@ -455,7 +316,6 @@ export default function HomePage() {
     const [banners, setBanners] = useState([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [sections, setSections] = useState<any[]>([]);
-    const [trendingProducts, setTrendingProducts] = useState([]);
     const [specialCollections, setSpecialCollections] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -472,11 +332,10 @@ export default function HomePage() {
 
         const fetchAll = async () => {
             try {
-                const [bannersData, categoriesData, sectionsData, trendingData, specialCollectionsData] = await Promise.all([
+                const [bannersData, categoriesData, sectionsData, specialCollectionsData] = await Promise.all([
                     safeFetch(`${API_BASE}/public/banners`),
                     safeFetch(`${API_BASE}/public/categories`),
                     safeFetch(`${API_BASE}/public/sections`),
-                    safeFetch(`${API_BASE}/storefront/trending-products`),
                     safeFetch(`${API_BASE}/public/special-collections`),
                 ]);
 
@@ -491,9 +350,6 @@ export default function HomePage() {
                 }
                 if (sectionsData?.success || sectionsData?.status) {
                     setSections(sectionsData.data || []);
-                }
-                if (trendingData?.success || trendingData?.status) {
-                    setTrendingProducts(trendingData.data || []);
                 }
                 if (specialCollectionsData?.success || specialCollectionsData?.status) {
                     setSpecialCollections((specialCollectionsData.data || []).filter((sc: any) => sc.isActive));
@@ -561,9 +417,6 @@ export default function HomePage() {
 
             {/* Dynamic Curated Price Segments Block */}
             <SpecialCollectionsGrid collections={specialCollections} />
-
-            {/* Trending Products */}
-            <TrendingProducts products={trendingProducts} />
 
             <SeoBrandSection />
         </>

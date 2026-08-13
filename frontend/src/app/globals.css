@@ -8,6 +8,7 @@
   --text-muted: #6b7280;
   --font-heading: var(--font-marcellus), 'Optima', 'Candara', 'Noto Sans', sans-serif;
   --font-body: var(--font-marcellus), 'Optima', 'Candara', 'Noto Sans', sans-serif;
+  --font-nav: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 body {
@@ -19,6 +20,7 @@ body {
   --color-brand-pink-hover: var(--brand-pink-hover);
   --font-heading: var(--font-heading);
   --font-body: var(--font-body);
+  --font-nav: var(--font-nav);
 }
 
 

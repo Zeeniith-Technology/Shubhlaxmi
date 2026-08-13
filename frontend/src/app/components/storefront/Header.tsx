@@ -184,7 +184,7 @@ export default function Header() {
                             <Link
                                 key={section._id}
                                 href={sectionHref}
-                                className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
+                                className="text-[12px] font-[var(--font-nav)] font-bold uppercase tracking-wide text-[var(--text-primary)] hover:text-[#ea2083]"
                             >
                                 {section.name}
                             </Link>
@@ -206,7 +206,7 @@ export default function Header() {
                             onMouseEnter={() => openMegaMenu(dropdownKey)}
                             onMouseLeave={scheduleMegaMenuClose}
                         >
-                            <button className="flex items-center gap-1 text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide focus:outline-none">
+                            <button className="flex items-center gap-1 text-[12px] font-[var(--font-nav)] font-bold uppercase tracking-wide text-[var(--text-primary)] hover:text-[#ea2083] focus:outline-none">
                                 {section.name}
                                 <ChevronDown size={12} className="transition-transform group-hover:rotate-180 opacity-50" />
                             </button>
@@ -350,20 +350,23 @@ export default function Header() {
                 })}
                 <Link
                     href="/video-appointment"
-                    className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
+                    className="text-[12px] font-[var(--font-nav)] font-bold uppercase tracking-wide text-[var(--text-primary)] hover:text-[#ea2083]"
                 >
                     Live Video Shopping
                 </Link>
                 <Link
                     href="/pages/contact"
-                    className="text-[13px] font-[var(--font-body)] text-[var(--text-primary)] hover:text-[#ea2083] tracking-wide"
+                    className="text-[12px] font-[var(--font-nav)] font-bold uppercase tracking-wide text-[var(--text-primary)] hover:text-[#ea2083]"
                 >
                     Contact Us
                 </Link>
                     </nav>
 
-                    {/* Search Bar (desktop, persistent) */}
-                    <form onSubmit={handleSearchSubmit} className="hidden lg:flex flex-1 max-w-md relative">
+                    {/* Search Bar (desktop, persistent) — pushed next to the icon
+                        cluster on the far right, instead of stretching to fill
+                        the middle of the row, so it sits right beside currency/
+                        user/wishlist/cart rather than floating in empty space. */}
+                    <form onSubmit={handleSearchSubmit} className="hidden lg:flex w-64 xl:w-80 relative ml-auto">
                         <input
                             type="text"
                             name="search"
@@ -598,7 +601,7 @@ export default function Header() {
                                         key={section._id}
                                         href={collectionHref(section)}
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="block py-4 text-[17px] font-bold text-gray-900 font-[var(--font-heading)] tracking-wide uppercase border-b border-gray-100"
+                                        className="block py-4 text-[17px] font-bold text-gray-900 font-[var(--font-nav)] tracking-wide uppercase border-b border-gray-100"
                                     >
                                         {section.name}
                                     </Link>
@@ -612,7 +615,7 @@ export default function Header() {
                                 <div key={section._id} className="border-b border-gray-100">
                                     <button
                                         onClick={() => setActiveDropdown(activeDropdown === sectionKey ? null : sectionKey)}
-                                        className="w-full flex items-center justify-between py-4 text-[17px] font-bold text-gray-900 font-[var(--font-heading)] tracking-wide uppercase"
+                                        className="w-full flex items-center justify-between py-4 text-[17px] font-bold text-gray-900 font-[var(--font-nav)] tracking-wide uppercase"
                                     >
                                         {section.name}
                                         <ChevronDown size={18} className={`text-gray-400 transition-transform ${activeDropdown === sectionKey ? 'rotate-180' : ''}`} />
@@ -690,10 +693,10 @@ export default function Header() {
                         })}
 
                         {/* Additional links from Desktop menu */}
-                        <Link href="/video-appointment" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
+                        <Link href="/video-appointment" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[15px] font-bold uppercase text-gray-900 border-b border-gray-100 font-[var(--font-nav)] tracking-wide">
                             Live Video Shopping
                         </Link>
-                        <Link href="/pages/contact" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[17px] font-medium text-gray-800 border-b border-gray-100 font-[var(--font-heading)] tracking-wide">
+                        <Link href="/pages/contact" onClick={() => setMobileMenuOpen(false)} className="block py-4 text-[15px] font-bold uppercase text-gray-900 border-b border-gray-100 font-[var(--font-nav)] tracking-wide">
                             Contact Us
                         </Link>
                     </div>
