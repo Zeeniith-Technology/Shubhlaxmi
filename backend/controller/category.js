@@ -269,6 +269,16 @@ class CategoryController {
             }
 
             await db.checkTableExists('tblcategories', categorySchema);
+
+            // Delete images from Cloudinary for each category first (was
+            // previously skipped in bulk, unlike single deletecategory).
+            const cats = await db.fetchdata({ _id: { $in: ids } }, 'tblcategories', categorySchema);
+            for (const cat of cats) {
+                if (cat.image && cat.image.publicId) {
+                    try { await deleteImage(cat.image.publicId); } catch (e) { /* skip */ }
+                }
+            }
+
             const result = await db.executdata('tblcategories', categorySchema, 'd', { _id: { $in: ids } });
 
             req.api_data = result;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, X } from "lucide-react";
+import Toast from "../components/Toast";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export default function DiscountsPage() {
@@ -186,11 +187,7 @@ export default function DiscountsPage() {
                     )}
                 </div>
 
-                {msg.text && (
-                    <div style={{ padding: "12px 20px", marginBottom: "20px", borderRadius: "8px", background: msg.type === "error" ? "#fee2e2" : "#dcfce7", color: msg.type === "error" ? "#b91c1c" : "#15803d", fontWeight: "500" }}>
-                        {msg.text}
-                    </div>
-                )}
+                {msg.text && <Toast text={msg.text} type={msg.type} />}
 
                 {showForm && (
                     <div style={{ background: "white", padding: "30px", borderRadius: "12px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", marginBottom: "30px" }}>

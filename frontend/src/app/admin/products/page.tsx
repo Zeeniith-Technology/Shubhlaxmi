@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import CustomSelect from "../components/CustomSelect";
+import Toast from "../components/Toast";
 import { compressImage } from "../../utils/compressImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -46,9 +47,9 @@ export default function ProductsPage() {
 
     // Bulk modals
     const [bulkAddOpen, setBulkAddOpen] = useState(false);
-    const [bulkAddItems, setBulkAddItems] = useState<{ title: string; price: string; stock: string; sectionId: string; categoryId: string }[]>([]);
+    const [bulkAddItems, setBulkAddItems] = useState<{ title: string; price: string; stock: string; sectionId: string; categoryId: string; image?: File | null }[]>([]);
     const [bulkEditOpen, setBulkEditOpen] = useState(false);
-    const [bulkEditItems, setBulkEditItems] = useState<{ id: string; title: string; price: string }[]>([]);
+    const [bulkEditItems, setBulkEditItems] = useState<{ id: string; title: string; price: string; stock: string; image?: File | null }[]>([]);
 
     // Delete Confirmation Modals
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -192,22 +193,49 @@ export default function ProductsPage() {
 
     // Bulk Add
     const openBulkAdd = () => {
-        setBulkAddItems(Array(5).fill({ title: "", price: "", stock: "", sectionId: "", categoryId: "" }));
+        setBulkAddItems(Array(5).fill(null).map(() => ({ title: "", price: "", stock: "", sectionId: "", categoryId: "", image: null })));
         setBulkAddOpen(true);
     };
 
+    // Turns the backend's per-row { index, title, error } array into a
+    // readable summary appended to the success/failure toast, since it was
+    // previously computed server-side and silently discarded.
+    const formatBulkErrors = (errors: { index: number; title?: string; id?: string; error: string }[]) => {
+        if (!errors || errors.length === 0) return "";
+        return " — " + errors.map(e => `Row ${e.index + 1}${e.title ? ` (${e.title})` : ""}: ${e.error}`).join("; ");
+    };
+
     const handleBulkAdd = async () => {
-        const validItems = bulkAddItems.filter(i => i.title.trim() && i.price && i.sectionId && i.categoryId);
-        if (validItems.length === 0) { showMsg("Please fill at least one product completely (Title, Price, Section, Category)", "error"); return; }
+        // categoryId is intentionally NOT required — a product can be assigned
+        // directly to a Section only (the "Section only" toggle on the single
+        // Add Product form), so bulk add must allow that too.
+        const validIdx = bulkAddItems.map((i, idx) => ({ i, idx })).filter(({ i }) => i.title.trim() && i.price && i.sectionId);
+        if (validIdx.length === 0) { showMsg("Please fill at least one product completely (Title, Price, Section)", "error"); return; }
         setLoading(true);
         try {
+            const formData = new FormData();
+            const itemsData = validIdx.map(({ i }) => ({
+                title: i.title, price: i.price, stock: i.stock, sectionId: i.sectionId,
+                ...(i.categoryId ? { categoryId: i.categoryId } : {})
+            }));
+            formData.append('items', JSON.stringify(itemsData));
+            for (let row = 0; row < validIdx.length; row++) {
+                const img = validIdx[row].i.image;
+                if (img) {
+                    const compressed = await compressImage(img);
+                    formData.append(`image_${row}`, compressed);
+                }
+            }
+
             const res = await fetch(`${API_BASE}/product/bulkadd`, {
-                method: "POST", headers: hdrs(),
-                body: JSON.stringify({ items: validItems })
+                method: "POST", headers: { "Authorization": `Bearer ${getToken()}` },
+                body: formData
             });
             const data = await res.json();
-            if (data.success) { setBulkAddOpen(false); fetchProducts(); showMsg(data.message); }
-            else showMsg(data.message, "error");
+            if (data.success) {
+                setBulkAddOpen(false); fetchProducts();
+                showMsg(data.message + formatBulkErrors(data.data?.errors), data.data?.errors?.length ? "error" : "success");
+            } else showMsg(data.message, "error");
         } catch { showMsg("Bulk add failed", "error"); }
         finally { setLoading(false); }
     };
@@ -215,20 +243,33 @@ export default function ProductsPage() {
     // Bulk Edit
     const openBulkEdit = () => {
         if (selected.length === 0) { showMsg("Select products first", "error"); return; }
-        setBulkEditItems(products.filter(p => selected.includes(p._id)).map(p => ({ id: p._id, title: p.title, price: String(p.price) })));
+        setBulkEditItems(products.filter(p => selected.includes(p._id)).map(p => ({ id: p._id, title: p.title, price: String(p.price), stock: String(p.stock ?? 0), image: null })));
         setBulkEditOpen(true);
     };
 
     const handleBulkUpdate = async () => {
         setLoading(true);
         try {
+            const formData = new FormData();
+            const itemsData = bulkEditItems.map(i => ({ id: i.id, title: i.title, price: Number(i.price), stock: Number(i.stock) }));
+            formData.append('items', JSON.stringify(itemsData));
+            for (let i = 0; i < bulkEditItems.length; i++) {
+                const img = bulkEditItems[i].image;
+                if (img) {
+                    const compressed = await compressImage(img);
+                    formData.append(`image_${i}`, compressed);
+                }
+            }
+
             const res = await fetch(`${API_BASE}/product/bulkupdate`, {
-                method: "POST", headers: hdrs(),
-                body: JSON.stringify({ items: bulkEditItems.map(i => ({ id: i.id, title: i.title, price: Number(i.price) })) })
+                method: "POST", headers: { "Authorization": `Bearer ${getToken()}` },
+                body: formData
             });
             const data = await res.json();
-            if (data.success) { setBulkEditOpen(false); setSelected([]); fetchProducts(); showMsg(data.message); }
-            else showMsg(data.message, "error");
+            if (data.success) {
+                setBulkEditOpen(false); setSelected([]); fetchProducts();
+                showMsg(data.message + formatBulkErrors(data.data?.errors), data.data?.errors?.length ? "error" : "success");
+            } else showMsg(data.message, "error");
         } catch { showMsg("Bulk update failed", "error"); }
         finally { setLoading(false); }
     };
@@ -293,9 +334,7 @@ export default function ProductsPage() {
                 </div>
             </div>
 
-            {message && (
-                <div style={{ padding: "10px 16px", borderRadius: 6, marginBottom: 16, fontSize: 13, fontWeight: 500, background: message.type === "success" ? "#dcfce7" : "#fee2e2", color: message.type === "success" ? "#166534" : "#991b1b", border: `1px solid ${message.type === "success" ? "#bbf7d0" : "#fecaca"}` }}>{message.text}</div>
-            )}
+            {message && <Toast text={message.text} type={message.type} />}
 
             {/* Product Form */}
             {showForm && (
@@ -613,7 +652,7 @@ export default function ProductsPage() {
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-3">
                             {bulkAddItems.map((item, idx) => (
-                                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr_36px] gap-3 items-center bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
+                                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr_1fr_36px] gap-3 items-center bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
                                     <input placeholder="Title *" value={item.title} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], title: e.target.value }; setBulkAddItems(c); }} style={inputStyle} className="w-full" />
                                     <div className="flex gap-3 sm:contents">
                                         <input type="number" placeholder="Price *" value={item.price} onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], price: e.target.value }; setBulkAddItems(c); }} style={inputStyle} className="flex-1 sm:w-full" />
@@ -632,9 +671,16 @@ export default function ProductsPage() {
                                             value={item.categoryId}
                                             onChange={(val: string) => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], categoryId: val }; setBulkAddItems(c); }}
                                             options={categories.filter(c => c.sectionId === item.sectionId).map(c => ({ value: c._id, label: c.name }))}
-                                            placeholder="Category *"
+                                            placeholder="Category (optional)"
                                             disabled={!item.sectionId}
                                         />
+                                    </div>
+                                    <div className="w-full">
+                                        <input type="file" accept="image/*" id={`bulk-add-img-${idx}`} className="hidden"
+                                            onChange={e => { const c = [...bulkAddItems]; c[idx] = { ...c[idx], image: e.target.files?.[0] || null }; setBulkAddItems(c); }} />
+                                        <label htmlFor={`bulk-add-img-${idx}`} className={`flex items-center justify-center h-[42px] rounded-md cursor-pointer text-xs font-semibold border ${item.image ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
+                                            {item.image ? "✓ Image" : "+ Image"}
+                                        </label>
                                     </div>
                                     {bulkAddItems.length > 1 ? (
                                         <button onClick={() => setBulkAddItems(bulkAddItems.filter((_, i) => i !== idx))} className="bg-red-100 text-red-500 border-none w-7 h-7 rounded-full cursor-pointer flex items-center justify-center mx-auto sm:mx-0">&times;</button>
@@ -643,7 +689,7 @@ export default function ProductsPage() {
                             ))}
                         </div>
                         <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center p-5 border-t border-slate-200 bg-white gap-4">
-                            <button type="button" onClick={() => { if (bulkAddItems.length < 20) setBulkAddItems([...bulkAddItems, { title: "", price: "", stock: "", sectionId: "", categoryId: "" }]) }}
+                            <button type="button" onClick={() => { if (bulkAddItems.length < 20) setBulkAddItems([...bulkAddItems, { title: "", price: "", stock: "", sectionId: "", categoryId: "", image: null }]) }}
                                 disabled={bulkAddItems.length >= 20}
                                 className={`px-4 py-2 bg-slate-50 text-blue-500 border border-dashed border-slate-300 rounded-md font-semibold text-sm ${bulkAddItems.length >= 20 ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-slate-100"}`}>
                                 + Add another row (Max 20)
@@ -666,11 +712,20 @@ export default function ProductsPage() {
                         </div>
                         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3">
                             {bulkEditItems.map((item, idx) => (
-                                <div key={item.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3">
+                                <div key={item.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr] gap-3">
                                     <input type="text" value={item.title} onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], title: e.target.value }; setBulkEditItems(c); }}
                                         placeholder="Title" style={inputStyle} className="w-full" />
                                     <input type="number" value={item.price} onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], price: e.target.value }; setBulkEditItems(c); }}
                                         placeholder="Price" style={inputStyle} className="w-full" />
+                                    <input type="number" value={item.stock} onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], stock: e.target.value }; setBulkEditItems(c); }}
+                                        placeholder="Stock" style={inputStyle} className="w-full" />
+                                    <div className="w-full">
+                                        <input type="file" accept="image/*" id={`bulk-edit-img-${idx}`} className="hidden"
+                                            onChange={e => { const c = [...bulkEditItems]; c[idx] = { ...c[idx], image: e.target.files?.[0] || null }; setBulkEditItems(c); }} />
+                                        <label htmlFor={`bulk-edit-img-${idx}`} className={`flex items-center justify-center h-[38px] rounded-md cursor-pointer text-xs font-semibold border ${item.image ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-100 text-slate-600 border-slate-300"}`}>
+                                            {item.image ? "✓ Image" : "+ Image"}
+                                        </label>
+                                    </div>
                                 </div>
                             ))}
                         </div>

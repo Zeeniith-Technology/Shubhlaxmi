@@ -443,9 +443,14 @@ class ProductController {
     }
 
     // 5. Bulk Add Products — body: { items: [{ title, price, sectionId, categoryId }, ...] }
+    // Images arrive as multipart files with fieldname `image_<row index>`
+    // (same convention as category bulk add), one image per row.
     async bulkaddproduct(req, res, next) {
         try {
-            const { items } = req.body;
+            let { items } = req.body;
+            if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch (e) { }
+            }
             if (!items || !Array.isArray(items) || items.length === 0) {
                 req.api_error = { statusCode: 400, message: "items array is required" };
                 return next();
@@ -459,14 +464,37 @@ class ProductController {
                 try {
                     const item = items[i];
                     if (!item.title || !item.price || !item.sectionId) {
-                        errors.push({ index: i, error: "title, price, sectionId required" });
+                        errors.push({ index: i, title: item.title, error: "Title, price, and section are required" });
                         continue;
                     }
+
+                    const numPrice = Number(item.price);
+                    if (isNaN(numPrice) || numPrice <= 0) {
+                        errors.push({ index: i, title: item.title, error: "Price must be a positive number" });
+                        continue;
+                    }
+                    const numStock = item.stock !== undefined && item.stock !== '' ? Number(item.stock) : 0;
+                    if (isNaN(numStock) || numStock < 0) {
+                        errors.push({ index: i, title: item.title, error: "Stock cannot be negative" });
+                        continue;
+                    }
+
                     item.slug = await uniqueSlug(slugify(item.title));
-                    item.price = Number(item.price);
+                    item.price = numPrice;
+                    item.stock = numStock;
                     if (!item.categoryId) item.categoryId = null;
-                    if (item.compareAtPrice) item.compareAtPrice = Number(item.compareAtPrice);
-                    if (item.stock) item.stock = Number(item.stock);
+                    if (item.compareAtPrice) {
+                        const cap = Number(item.compareAtPrice);
+                        item.compareAtPrice = isNaN(cap) ? null : cap;
+                    }
+
+                    if (req.files && Array.isArray(req.files)) {
+                        const file = req.files.find(f => f.fieldname === `image_${i}`);
+                        if (file) {
+                            item.images = [{ url: file.path, publicId: file.filename }];
+                        }
+                    }
+
                     const result = await db.executdata('tblproducts', productSchema, 'i', item);
                     results.push(result);
                 } catch (err) {
@@ -486,9 +514,15 @@ class ProductController {
     }
 
     // 6. Bulk Update Products — body: { items: [{ id, title, price }, ...] }
+    // Images arrive the same way as bulk add: fieldname `image_<row index>`,
+    // and replace (not append to) the product's existing images, same as
+    // single updateproduct — old Cloudinary images are cleaned up first.
     async bulkupdateproduct(req, res, next) {
         try {
-            const { items } = req.body;
+            let { items } = req.body;
+            if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch (e) { }
+            }
             if (!items || !Array.isArray(items) || items.length === 0) {
                 req.api_error = { statusCode: 400, message: "items array is required" };
                 return next();
@@ -502,9 +536,47 @@ class ProductController {
                 try {
                     const { id, ...updateFields } = items[i];
                     if (!id) { errors.push({ index: i, error: "ID missing" }); continue; }
+
                     if (updateFields.title && !updateFields.slug) {
                         updateFields.slug = await uniqueSlug(slugify(updateFields.title), id);
                     }
+                    if (updateFields.price !== undefined) {
+                        const numPrice = Number(updateFields.price);
+                        if (isNaN(numPrice) || numPrice <= 0) {
+                            errors.push({ index: i, id, error: "Price must be a positive number" });
+                            continue;
+                        }
+                        updateFields.price = numPrice;
+                    }
+                    if (updateFields.stock !== undefined) {
+                        const numStock = Number(updateFields.stock);
+                        if (isNaN(numStock) || numStock < 0) {
+                            errors.push({ index: i, id, error: "Stock cannot be negative" });
+                            continue;
+                        }
+                        updateFields.stock = numStock;
+                    }
+                    // Section-only switch: "" means "no category" — null it out
+                    // rather than passing "" through to Mongoose (invalid ObjectId cast).
+                    if (updateFields.categoryId === '') {
+                        updateFields.categoryId = null;
+                    }
+
+                    if (req.files && Array.isArray(req.files)) {
+                        const file = req.files.find(f => f.fieldname === `image_${i}`);
+                        if (file) {
+                            const existingArr = await db.fetchdata({ _id: id }, 'tblproducts', productSchema);
+                            if (existingArr && existingArr.length > 0 && existingArr[0].images) {
+                                for (const img of existingArr[0].images) {
+                                    if (img.publicId) {
+                                        try { await deleteImage(img.publicId); } catch (e) { /* ignore */ }
+                                    }
+                                }
+                            }
+                            updateFields.images = [{ url: file.path, publicId: file.filename }];
+                        }
+                    }
+
                     const result = await db.executdata('tblproducts', productSchema, 'u', {
                         condition: { _id: id },
                         update: updateFields

@@ -88,8 +88,8 @@ router.get('/public/marquee', getMarqueeSetting);
 router.post('/category/bulkdelete', requireAdmin, category.bulkdeletecategory, responsedata);
 
 // 8. Bulk Product Routes
-router.post('/product/bulkadd', requireAdmin, product.bulkaddproduct, responsedata);
-router.post('/product/bulkupdate', requireAdmin, product.bulkupdateproduct, responsedata);
+router.post('/product/bulkadd', requireAdmin, upload.any(), product.bulkaddproduct, responsedata);
+router.post('/product/bulkupdate', requireAdmin, upload.any(), product.bulkupdateproduct, responsedata);
 router.post('/product/bulkdelete', requireAdmin, product.bulkdeleteproduct, responsedata);
 
 // 9. Attribute Routes

@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import CustomSelect from "../components/CustomSelect";
+import Toast from "../components/Toast";
 import { compressImage } from "../../utils/compressImage";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
-
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState<any[]>([]);
@@ -263,9 +262,7 @@ export default function CategoriesPage() {
                 )}
             </div>
 
-            {message && (
-                <div style={{ padding: "10px 16px", borderRadius: 6, marginBottom: 16, fontSize: 13, fontWeight: 500, background: message.type === "success" ? "#dcfce7" : "#fee2e2", color: message.type === "success" ? "#166534" : "#991b1b", border: `1px solid ${message.type === "success" ? "#bbf7d0" : "#fecaca"}` }}>{message.text}</div>
-            )}
+            {message && <Toast text={message.text} type={message.type} />}
 
             {/* Quick Add */}
             <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: 20, marginBottom: 20 }}>
